@@ -60,7 +60,7 @@ func main() {
 	})
 	r.POST("/kv", func(c *gin.Context) {
 		var kv KV
-		if err := c.ShouldBind(&kv); err != nil {
+		if err := c.ShouldBindJSON(&kv); err != nil {
 			c.JSON(400, gin.H{
 				"code":    400,
 				"message": "参数错误",

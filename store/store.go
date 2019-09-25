@@ -2,21 +2,27 @@ package store
 
 import "dkv/store/appendfile"
 
-type readOp struct {
-	key  []byte
-	resp chan []byte
+type KV struct {
+	K   []byte
+	V   []byte
+	Err error
 }
 
-type writeOp struct {
-	key  []byte
-	val  []byte
+type ROps struct {
+	kv   *KV
+	resp chan bool
+}
+
+type WOps struct {
+	kv   *KV
 	resp chan bool
 }
 
 type store struct {
-	fm  *appendfile.FileManager
-	rop chan *readOp
-	wop chan *writeOp
+	fm       *appendfile.FileManager
+	rop      chan *ROps
+	wop      chan *WOps
+	shutdown chan bool
 }
 
 func New(dir string) (*store, error) {
@@ -24,44 +30,53 @@ func New(dir string) (*store, error) {
 	if err != nil {
 		return nil, err
 	}
-	rop := make(chan *readOp)
-	wop := make(chan *writeOp)
-
+	rop := make(chan *ROps)
+	wop := make(chan *WOps)
+	shutdown := make(chan bool)
 	go func() {
 		for {
 			select {
 			case r := <-rop:
 				{
-					val, _ := fm.Read(r.key)
-					r.resp <- val
+					r.kv.V, r.kv.Err = fm.Read(r.kv.K)
+					r.resp <- true
 				}
 			case w := <-wop:
 				{
-					fm.Write(w.key, w.val)
+					w.kv.Err = fm.Write(w.kv.K, w.kv.V)
 					w.resp <- true
+				}
+			case <-shutdown:
+				{
+					return
 				}
 			}
 		}
 	}()
-	return &store{fm: fm, rop: rop, wop: wop}, nil
+	return &store{fm: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
 }
 
 func (s *store) Get(k []byte) ([]byte, error) {
-	r := &readOp{
-		key:  k,
-		resp: make(chan []byte),
+	r := &ROps{
+		kv:   &KV{K: k},
+		resp: make(chan bool),
 	}
 	s.rop <- r
-	return <-r.resp, nil
+	<-r.resp
+	return r.kv.V, r.kv.Err
 }
 
 func (s *store) Put(k, v []byte) error {
-	w := &writeOp{
-		key:  k,
-		val:  v,
+	w := &WOps{
+		kv:   &KV{K: k, V: v},
 		resp: make(chan bool),
 	}
 	s.wop <- w
 	<-w.resp
-	return nil
+	return w.kv.Err
+}
+
+func (s *store) Close() {
+	s.shutdown <- true
+	s.fm.Close()
 }

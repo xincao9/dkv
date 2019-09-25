@@ -33,6 +33,11 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	off, err := af.Size()
+	if err != nil {
+		return nil, err
+	}
+	af.offset = int32(off)
 	return af, nil
 }
 
