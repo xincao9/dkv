@@ -7,20 +7,20 @@ import (
 	"path/filepath"
 )
 
-type meta struct {
-	Fids      []string `json:"fids"`
-	Dir       string   `json:"dir"`
-	ActiveFid string   `json:"activeFid"`
+type Meta struct {
+	OlderFids []int64 `json:"fids"`
+	Dir       string  `json:"dir"`
+	ActiveFid int64   `json:"activeFid"`
 }
 
 const (
 	metaFn     = "meta.json"
-	defaultDir = "/tmp"
+	DefaultDir = "/tmp/dkv"
 )
 
-func NewMeta(dir string) (*meta, error) {
+func NewMeta(dir string) (*Meta, error) {
 	if dir == "" {
-		dir = defaultDir
+		dir = DefaultDir
 	}
 	fn := filepath.Join(dir, metaFn)
 	ok, err := isExist(fn)
@@ -32,23 +32,26 @@ func NewMeta(dir string) (*meta, error) {
 		if err != nil {
 			return nil, err
 		}
-		m := &meta{}
+		m := &Meta{}
 		err = json.Unmarshal(b, m)
 		if err != nil {
 			return nil, err
 		}
 		return m, nil
 	}
-	return &meta{Dir:dir}, nil
+	m := &Meta{Dir: dir}
+	m.Save()
+	return m, nil
 }
 
-func (m *meta) Save () error {
+func (m *Meta) Save() error {
 	fn := filepath.Join(m.Dir, metaFn)
 	b, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(fn, b, os.ModePerm)
+	os.Mkdir(m.Dir, 0666)
+	return ioutil.WriteFile(fn, b, 0666)
 }
 
 func isExist(fn string) (bool, error) {

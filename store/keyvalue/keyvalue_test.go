@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewKeyValue(t *testing.T) {
-	kv, err := NewKeyValue("k", "v")
+	kv, err := NewKeyValue([]byte("k"), []byte("v"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -14,7 +14,7 @@ func TestNewKeyValue(t *testing.T) {
 }
 
 func TestEncode(t *testing.T) {
-	kv, err := NewKeyValue("k", "v")
+	kv, err := NewKeyValue([]byte("k"), []byte("v"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -22,7 +22,7 @@ func TestEncode(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	kv, err := NewKeyValue("k", "v")
+	kv, err := NewKeyValue([]byte("k"), []byte("v"))
 	if err != nil {
 		t.Error(err)
 	}

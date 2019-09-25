@@ -15,11 +15,11 @@ type keyValue struct {
 	Crc32     uint32
 	KeySize   uint8
 	ValueSize uint16
-	Key       string
-	Value     string
+	Key       []byte
+	Value     []byte
 }
 
-func NewKeyValue(key string, value string) (*keyValue, error) {
+func NewKeyValue(key []byte, value []byte) (*keyValue, error) {
 	kl := len(key)
 	vl := len(value)
 	if kl > math.MaxUint8 || vl > math.MaxUint16 {
@@ -35,7 +35,7 @@ func NewKeyValue(key string, value string) (*keyValue, error) {
 	return kv, nil
 }
 
-func crc32Checksum (kv keyValue) uint32 {
+func crc32Checksum(kv keyValue) uint32 {
 	kv.Crc32 = 0
 	return crc32.ChecksumIEEE(Encode(&kv))
 }
@@ -66,9 +66,9 @@ func Decode(b []byte) (*keyValue, error) {
 		return nil, errors.New("packet exception")
 	}
 	s, e := 7, 7+int(kv.KeySize)
-	kv.Key = string(b[s:e])
+	kv.Key = b[s:e]
 	s, e = 7+int(kv.KeySize), 7+int(kv.KeySize)+int(kv.ValueSize)
-	kv.Value = string(b[s:e])
+	kv.Value = b[s:e]
 	crc := crc32Checksum(*kv)
 	if crc != kv.Crc32 {
 		return nil, errors.New("packet exception")
