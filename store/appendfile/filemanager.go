@@ -3,7 +3,9 @@ package appendfile
 import (
 	"dkv/store/keyvalue"
 	"dkv/store/meta"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -13,7 +15,7 @@ type Item struct {
 	size   int32
 }
 
-type fileManager struct {
+type FileManager struct {
 	meta     *meta.Meta
 	activeAF *appendFile
 	olderAF  []*appendFile
@@ -21,7 +23,7 @@ type fileManager struct {
 	afmap    map[int64]*appendFile
 }
 
-func NewFileManager(dir string) (*fileManager, error) {
+func NewFileManager(dir string) (*FileManager, error) {
 	m, err := meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
@@ -44,7 +46,7 @@ func NewFileManager(dir string) (*fileManager, error) {
 		olderAF = append(olderAF, af)
 		afmap[fid] = af
 	}
-	fm := &fileManager{
+	fm := &FileManager{
 		meta:     m,
 		activeAF: activeAF,
 		olderAF:  olderAF,
@@ -73,10 +75,14 @@ func NewFileManager(dir string) (*fileManager, error) {
 			fm.meta.Save()
 		}
 	}()
+	err = fm.Load()
+	if err != nil {
+		return nil, err
+	}
 	return fm, nil
 }
 
-func (fm fileManager) Write(k []byte, v []byte) error {
+func (fm *FileManager) Write(k []byte, v []byte) error {
 	kv, err := keyvalue.NewKeyValue(k, v)
 	if err != nil {
 		return err
@@ -94,10 +100,12 @@ func (fm fileManager) Write(k []byte, v []byte) error {
 	return nil
 }
 
-func (fm fileManager) Read(k []byte) ([]byte, error) {
+var KeyNotFound = errors.New("key is not found")
+
+func (fm *FileManager) Read(k []byte) ([]byte, error) {
 	item, state := fm.index[string(k)]
 	if state == false {
-		return nil, fmt.Errorf("key {%s} is not found", k)
+		return nil, KeyNotFound
 	}
 	b := make([]byte, item.size)
 	fm.afmap[item.fid].Read(int64(item.offset), b)
@@ -108,7 +116,61 @@ func (fm fileManager) Read(k []byte) ([]byte, error) {
 	return kv.Value, nil
 }
 
-func (fm fileManager) Close() {
+func (fm *FileManager) Load() error {
+	if fm.meta.OlderFids != nil {
+		for _, fid := range fm.meta.OlderFids {
+			af := fm.afmap[fid]
+			err := fm.loadAppendFile(af)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if fm.meta.ActiveFid != 0 {
+		af := fm.afmap[fm.meta.ActiveFid]
+		err := fm.loadAppendFile(af)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (fm *FileManager) loadAppendFile(af *appendFile) error {
+	b := make([]byte, 7)
+	off := int64(0)
+	var err error
+	n := 0
+	for {
+		n, err = af.f.ReadAt(b, off)
+		if err == io.EOF {
+			return nil
+		}
+		if n < 7 {
+			break
+		}
+		kv, err := keyvalue.DecodeHeader(b)
+		if err != nil {
+			return err
+		}
+		s := int(kv.KeySize) + int(kv.ValueSize)
+		d := make([]byte, 7+s)
+		n, err = af.f.ReadAt(d, off)
+		kv, err = keyvalue.Decode(d)
+		if err != nil {
+			return err
+		}
+		fm.index[string(kv.Key)] = &Item{
+			fid:    af.fid,
+			offset: int32(off),
+			size:   int32(7 + s),
+		}
+		off = off + int64(7) + int64(s)
+	}
+	return nil
+}
+
+func (fm *FileManager) Close() {
 	fm.activeAF.Close()
 	for _, af := range fm.olderAF {
 		af.Close()

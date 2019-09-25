@@ -75,3 +75,15 @@ func Decode(b []byte) (*keyValue, error) {
 	}
 	return kv, nil
 }
+
+func DecodeHeader(b []byte) (*keyValue, error) {
+	if len(b) < 7 {
+		return nil, errors.New("packet exception")
+	}
+	kv := &keyValue{
+		Crc32:     byteOrder.Uint32(b[:4]),
+		KeySize:   b[4],
+		ValueSize: byteOrder.Uint16(b[5:7]),
+	}
+	return kv, nil
+}

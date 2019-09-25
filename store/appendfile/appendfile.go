@@ -29,7 +29,7 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 		fid:    fid,
 	}
 	var err error
-	af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
 	}

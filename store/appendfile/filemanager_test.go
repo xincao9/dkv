@@ -39,3 +39,26 @@ func BenchmarkFileManager_Write(b *testing.B) {
 	}
 	os.RemoveAll(meta.DefaultDir)
 }
+
+func TestFileManager_Load(t *testing.T) {
+	os.RemoveAll(meta.DefaultDir)
+	fm, err := NewFileManager("")
+	if err != nil {
+		t.Error(err)
+	}
+	err = fm.Write([]byte("k"), []byte("v"))
+	if err != nil {
+		t.Error(err)
+	}
+	fm.Close()
+	fm, err = NewFileManager("")
+	if err != nil {
+		t.Error(err)
+	}
+	val, err := fm.Read([]byte("k"))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("%s\n", val)
+	os.RemoveAll(meta.DefaultDir)
+}
