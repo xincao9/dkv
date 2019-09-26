@@ -4,10 +4,12 @@ import (
 	"dkv/store"
 	"dkv/store/appendfile"
 	"dkv/store/meta"
-	"fmt"
+	logrus "github.com/sirupsen/logrus"
 	"log"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
 )
 
@@ -15,6 +17,10 @@ type KV struct {
 	K string `json:"k"`
 	V string `json:"v"`
 }
+
+var (
+	logger *logrus.Logger
+)
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
@@ -25,21 +31,39 @@ func init() {
 	viper.AddConfigPath(".")
 	viper.SetDefault("data.dir", meta.DefaultDir)
 	viper.SetDefault("server.port", ":8080")
+	viper.SetDefault("logger.level", "debug")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		log.Fatalf("Fatal error config file: %v\n", err)
 	}
+	logger = logrus.New()
+	level, err := logrus.ParseLevel(viper.GetString("logger.level"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fn := filepath.Join(viper.GetString("data.dir"), "server.log")
+	logger.Out = &lumberjack.Logger{
+		Filename:   fn,
+		MaxSize:    500,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
+	}
+	logger.SetLevel(level)
+	logger.Formatter = &logrus.JSONFormatter{}
+	log.SetOutput(logger.WriterLevel(logrus.InfoLevel))
 }
 
 func main() {
 	store, err := store.New(viper.GetString("data.dir"))
 	defer store.Close()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Fatal error store: %v\n", err)
 	}
 	gin.SetMode(viper.GetString("server.mode"))
-	r := gin.Default()
-	r.GET("/kv/:key", func(c *gin.Context) {
+	engine := gin.New()
+	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{Output: logger.WriterLevel(logrus.DebugLevel)}), gin.Recovery())
+	engine.GET("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
 			c.JSON(400, gin.H{
@@ -73,13 +97,14 @@ func main() {
 				})
 			return
 		}
+		logger.Errorf("method:get path:/kv/%s err=%s\n", key, err)
 		c.JSON(500,
 			gin.H{
 				"code":    500,
 				"message": "服务端错误",
 			})
 	})
-	r.POST("/kv", func(c *gin.Context) {
+	engine.POST("/kv", func(c *gin.Context) {
 		var kv KV
 		if err := c.ShouldBindJSON(&kv); err != nil {
 			c.JSON(400, gin.H{
@@ -90,6 +115,7 @@ func main() {
 		}
 		err := store.Put([]byte(kv.K), []byte(kv.V))
 		if err != nil {
+			logger.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
 			c.JSON(500,
 				gin.H{
 					"code":    500,
@@ -103,7 +129,7 @@ func main() {
 				"message": "成功",
 			})
 	})
-	r.DELETE("/kv/:key", func(c *gin.Context) {
+	engine.DELETE("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
 			c.JSON(400, gin.H{
@@ -129,13 +155,14 @@ func main() {
 				})
 			return
 		}
+		logger.Errorf("method:delete path:/kv/%s err=%s\n", key, err)
 		c.JSON(500,
 			gin.H{
 				"code":    500,
 				"message": "服务端错误",
 			})
 	})
-	if err := r.Run(viper.GetString("server.port")); err != nil {
-		log.Fatalln(err)
+	if err := engine.Run(viper.GetString("server.port")); err != nil {
+		log.Fatalf("Fatal error gin: %v\n", err)
 	}
 }
