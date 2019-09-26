@@ -8,9 +8,10 @@ import (
 )
 
 type Meta struct {
-	OlderFids []int64 `json:"fids"`
-	Dir       string  `json:"dir"`
-	ActiveFid int64   `json:"activeFid"`
+	OlderFids    []int64 `json:"fids"`
+	Dir          string  `json:"dir"`
+	ActiveFid    int64   `json:"activeFid"`
+	InvalidIndex bool    `json:"invalidIndex"`
 }
 
 const (

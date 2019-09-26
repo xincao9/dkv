@@ -3,9 +3,14 @@ package appendfile
 import (
 	"dkv/store/keyvalue"
 	"dkv/store/meta"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -71,6 +76,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 				oaf.role = Older
 				fm.meta.ActiveFid = fid
 				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
+				fm.IndexSave()
 			}
 			fm.meta.Save()
 		}
@@ -116,15 +122,35 @@ func (fm *FileManager) Read(k []byte) ([]byte, error) {
 	return kv.Value, nil
 }
 
+type i64 []int64
+
+func (i i64) Len() int {
+	return len(i)
+}
+func (i i64) Swap(x, y int) {
+	i[x], i[y] = i[y], i[x]
+}
+
+func (i i64) Less(x, y int) bool {
+	return i[x] < i[y]
+}
+
 func (fm *FileManager) Load() error {
-	if fm.meta.OlderFids != nil {
-		for _, fid := range fm.meta.OlderFids {
-			af := fm.afmap[fid]
-			err := fm.loadAppendFile(af)
-			if err != nil {
-				return err
+	startTime := time.Now()
+	log.Println("开始加载索引")
+	if fm.meta.InvalidIndex {
+		if fm.meta.OlderFids != nil {
+			sort.Sort(i64(fm.meta.OlderFids))
+			for _, fid := range fm.meta.OlderFids {
+				af := fm.afmap[fid]
+				err := fm.loadAppendFile(af)
+				if err != nil {
+					return err
+				}
 			}
 		}
+	} else {
+		fm.IndexLoad()
 	}
 	if fm.meta.ActiveFid != 0 {
 		af := fm.afmap[fm.meta.ActiveFid]
@@ -133,6 +159,7 @@ func (fm *FileManager) Load() error {
 			return err
 		}
 	}
+	log.Printf("加载索引完成，耗时 %.2f 秒\n", time.Since(startTime).Seconds())
 	return nil
 }
 
@@ -145,6 +172,8 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 		n, err = af.f.ReadAt(b, off)
 		if err == io.EOF {
 			return nil
+		} else if err != nil {
+			return err
 		}
 		if n < 7 {
 			break
@@ -176,4 +205,68 @@ func (fm *FileManager) Close() {
 		af.Close()
 	}
 	fm.meta.Save()
+}
+
+var (
+	byteOrder = binary.BigEndian
+)
+
+func (fm *FileManager) IndexSave () {
+	fn := filepath.Join(fm.meta.Dir, "idx")
+	f, err := os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+	if err != nil {
+		return
+	}
+	for k, i := range fm.index {
+		kl := len(k)
+		b := make([]byte, kl+18)
+		byteOrder.PutUint16(b[0:2], uint16(kl+18))
+		byteOrder.PutUint64(b[2:10], uint64(i.fid))
+		byteOrder.PutUint32(b[10:14], uint32(i.offset))
+		byteOrder.PutUint32(b[14:18], uint32(i.size))
+		copy(b[18:kl+18], k)
+		_, err := f.Write(b)
+		if err != nil {
+			log.Printf("index save key = %s, item = %v, err = %v\n", k, i, err)
+		}
+	}
+}
+
+func (fm *FileManager) IndexLoad () error {
+	fn := filepath.Join(fm.meta.Dir, "idx")
+	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		return err
+	}
+	b := make([]byte, 2)
+	off := int64(0)
+	n := 0
+	for {
+		n, err = f.ReadAt(b, off)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+		if n < 2 {
+			break
+		}
+		s := byteOrder.Uint16(b)
+		d := make([]byte, s)
+		n, err = f.ReadAt(d, off)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+		item := &Item{
+			fid:    int64(byteOrder.Uint64(d)),
+			offset: int32(byteOrder.Uint32(d)),
+			size:   int32(byteOrder.Uint32(d)),
+		}
+		key := d[18:]
+		fm.index[string(key)] = item
+		off = off + int64(s)
+	}
+	return nil
 }

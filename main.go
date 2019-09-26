@@ -12,8 +12,13 @@ type KV struct {
 	V string `json:"v"`
 }
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+}
+
 func main() {
 	store, err := store.New("")
+	defer store.Close()
 	if err != nil {
 		log.Fatalln(err)
 	}
