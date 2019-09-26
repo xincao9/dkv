@@ -1,0 +1,5 @@
+data:
+  dir: "/tmp/dkv"
+server:
+  mode: "debug"
+  port: ":9090"

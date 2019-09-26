@@ -3,8 +3,12 @@ package main
 import (
 	"dkv/store"
 	"dkv/store/appendfile"
-	"github.com/gin-gonic/gin"
+	"dkv/store/meta"
+	"fmt"
 	"log"
+
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 type KV struct {
@@ -14,14 +18,26 @@ type KV struct {
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("/etc/dkv/")
+	viper.AddConfigPath("$HOME/.dkv")
+	viper.AddConfigPath(".")
+	viper.SetDefault("data.dir", meta.DefaultDir)
+	viper.SetDefault("server.port", ":8080")
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 }
 
 func main() {
-	store, err := store.New("")
+	store, err := store.New(viper.GetString("data.dir"))
 	defer store.Close()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	gin.SetMode(viper.GetString("server.mode"))
 	r := gin.Default()
 	r.GET("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
@@ -119,5 +135,7 @@ func main() {
 				"message": "服务端错误",
 			})
 	})
-	r.Run()
+	if err := r.Run(viper.GetString("server.port")); err != nil {
+		log.Fatalln(err)
+	}
 }
