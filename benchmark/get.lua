@@ -5,6 +5,6 @@ request = function()
 	return wrk.format(nil, path, nil, nil)
 end
 
-response = function(status, headers, body)
-	print(status, body)
-end
+--response = function(status, headers, body)
+--	print(status, body)
+--end
