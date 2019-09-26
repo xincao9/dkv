@@ -39,7 +39,7 @@ func init() {
 	logger = logrus.New()
 	level, err := logrus.ParseLevel(viper.GetString("logger.level"))
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Fatal error config file logger.level: %v\n", err)
 	}
 	fn := filepath.Join(viper.GetString("data.dir"), "server.log")
 	logger.Out = &lumberjack.Logger{
