@@ -76,6 +76,14 @@ func (s *store) Put(k, v []byte) error {
 	return w.kv.Err
 }
 
+func (s *store) Delete(k []byte) error {
+	_, err := s.Get(k)
+	if err != nil {
+		return err
+	}
+	return s.Put(k, []byte(appendfile.DeleteFlag))
+}
+
 func (s *store) Close() {
 	s.shutdown <- true
 	s.fm.Close()

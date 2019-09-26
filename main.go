@@ -87,5 +87,37 @@ func main() {
 				"message": "成功",
 			})
 	})
+	r.DELETE("/kv/:key", func(c *gin.Context) {
+		key := c.Param("key")
+		if key == "" {
+			c.JSON(400, gin.H{
+				"code":    400,
+				"message": "参数错误",
+			})
+			return
+		}
+		err := store.Delete([]byte(key))
+		if err == nil {
+			c.JSON(200,
+				gin.H{
+					"code":    200,
+					"message": "成功",
+				})
+			return
+		}
+		if err == appendfile.KeyNotFound {
+			c.JSON(200,
+				gin.H{
+					"code":    200,
+					"message": "没有找到",
+				})
+			return
+		}
+		c.JSON(500,
+			gin.H{
+				"code":    500,
+				"message": "服务端错误",
+			})
+	})
 	r.Run()
 }

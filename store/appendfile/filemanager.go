@@ -11,8 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"time"
 )
+
+var DeleteFlag = "S_D"
 
 type Item struct {
 	fid    int64
@@ -24,7 +27,7 @@ type FileManager struct {
 	meta     *meta.Meta
 	activeAF *appendFile
 	olderAF  []*appendFile
-	index    map[string]*Item
+	index    sync.Map
 	afmap    map[int64]*appendFile
 }
 
@@ -55,7 +58,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 		meta:     m,
 		activeAF: activeAF,
 		olderAF:  olderAF,
-		index:    make(map[string]*Item, 0),
+		index:    sync.Map{},
 		afmap:    afmap,
 	}
 	go func() {
@@ -98,26 +101,31 @@ func (fm *FileManager) Write(k []byte, v []byte) error {
 	if err != nil {
 		return err
 	}
-	fm.index[string(k)] = &Item{
+	fm.index.Store(string(k), &Item{
 		fid:    fm.activeAF.fid,
 		offset: off,
 		size:   int32(len(b)),
-	}
+	})
 	return nil
 }
 
 var KeyNotFound = errors.New("key is not found")
 
 func (fm *FileManager) Read(k []byte) ([]byte, error) {
-	item, state := fm.index[string(k)]
+	v, state := fm.index.Load(string(k))
 	if state == false {
 		return nil, KeyNotFound
 	}
+	item := v.(*Item)
 	b := make([]byte, item.size)
 	fm.afmap[item.fid].Read(int64(item.offset), b)
 	kv, err := keyvalue.Decode(b)
 	if err != nil {
 		return nil, err
+	}
+	if string(kv.Value) == DeleteFlag {
+		fm.index.Delete(string(kv.Value))
+		return nil, KeyNotFound
 	}
 	return kv.Value, nil
 }
@@ -189,11 +197,11 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 		if err != nil {
 			return err
 		}
-		fm.index[string(kv.Key)] = &Item{
+		fm.index.Store(string(kv.Key), &Item{
 			fid:    af.fid,
 			offset: int32(off),
 			size:   int32(7 + s),
-		}
+		})
 		off = off + int64(7) + int64(s)
 	}
 	return nil
@@ -211,13 +219,15 @@ var (
 	byteOrder = binary.BigEndian
 )
 
-func (fm *FileManager) IndexSave () {
+func (fm *FileManager) IndexSave() {
 	fn := filepath.Join(fm.meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
 	if err != nil {
 		return
 	}
-	for k, i := range fm.index {
+	fm.index.Range(func(key, value interface{}) bool {
+		k := key.(string)
+		i := value.(*Item)
 		kl := len(k)
 		b := make([]byte, kl+18)
 		byteOrder.PutUint16(b[0:2], uint16(kl+18))
@@ -229,10 +239,11 @@ func (fm *FileManager) IndexSave () {
 		if err != nil {
 			log.Printf("index save key = %s, item = %v, err = %v\n", k, i, err)
 		}
-	}
+		return true
+	})
 }
 
-func (fm *FileManager) IndexLoad () error {
+func (fm *FileManager) IndexLoad() error {
 	fn := filepath.Join(fm.meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
@@ -265,7 +276,7 @@ func (fm *FileManager) IndexLoad () error {
 			size:   int32(byteOrder.Uint32(d)),
 		}
 		key := d[18:]
-		fm.index[string(key)] = item
+		fm.index.Store(string(key), item)
 		off = off + int64(s)
 	}
 	return nil
