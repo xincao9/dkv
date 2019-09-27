@@ -28,7 +28,7 @@ type FileManager struct {
 	activeAF *appendFile
 	olderAF  []*appendFile
 	index    sync.Map
-	afmap    map[int64]*appendFile
+	afmap    sync.Map
 }
 
 func NewFileManager(dir string) (*FileManager, error) {
@@ -39,12 +39,12 @@ func NewFileManager(dir string) (*FileManager, error) {
 	if m.ActiveFid == 0 {
 		m.ActiveFid = time.Now().UnixNano()
 	}
-	afmap := make(map[int64]*appendFile)
+	afmap := sync.Map{}
 	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
 	if err != nil {
 		return nil, err
 	}
-	afmap[m.ActiveFid] = activeAF
+	afmap.Store(m.ActiveFid, activeAF)
 	olderAF := make([]*appendFile, 0)
 	for _, fid := range m.OlderFids {
 		af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Older, fid)
@@ -52,7 +52,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 			return nil, err
 		}
 		olderAF = append(olderAF, af)
-		afmap[fid] = af
+		afmap.Store(fid, af)
 	}
 	fm := &FileManager{
 		meta:     m,
@@ -73,6 +73,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 				if err != nil {
 					continue
 				}
+				afmap.Store(fid, af)
 				oaf := fm.activeAF
 				fm.olderAF = append(fm.olderAF, fm.activeAF)
 				fm.activeAF = af
@@ -80,8 +81,8 @@ func NewFileManager(dir string) (*FileManager, error) {
 				fm.meta.ActiveFid = fid
 				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
 				fm.IndexSave()
+				fm.meta.Save()
 			}
-			fm.meta.Save()
 		}
 	}()
 	err = fm.Load()
@@ -118,7 +119,11 @@ func (fm *FileManager) Read(k []byte) ([]byte, error) {
 	}
 	item := v.(*Item)
 	b := make([]byte, item.size)
-	fm.afmap[item.fid].Read(int64(item.offset), b)
+	af, ok := fm.afmap.Load(item.fid)
+	if ok == false {
+		return nil, fmt.Errorf("item = %v is exception", *item)
+	}
+	af.(*appendFile).Read(int64(item.offset), b)
 	kv, err := keyvalue.Decode(b)
 	if err != nil {
 		return nil, err
@@ -150,8 +155,8 @@ func (fm *FileManager) Load() error {
 		if fm.meta.OlderFids != nil {
 			sort.Sort(i64(fm.meta.OlderFids))
 			for _, fid := range fm.meta.OlderFids {
-				af := fm.afmap[fid]
-				err := fm.loadAppendFile(af)
+				af, _ := fm.afmap.Load(fid)
+				err := fm.loadAppendFile(af.(*appendFile))
 				if err != nil {
 					return err
 				}
@@ -161,8 +166,8 @@ func (fm *FileManager) Load() error {
 		fm.IndexLoad()
 	}
 	if fm.meta.ActiveFid != 0 {
-		af := fm.afmap[fm.meta.ActiveFid]
-		err := fm.loadAppendFile(af)
+		af, _ := fm.afmap.Load(fm.meta.ActiveFid)
+		err := fm.loadAppendFile(af.(*appendFile))
 		if err != nil {
 			return err
 		}
@@ -271,11 +276,12 @@ func (fm *FileManager) IndexLoad() error {
 			return err
 		}
 		item := &Item{
-			fid:    int64(byteOrder.Uint64(d)),
-			offset: int32(byteOrder.Uint32(d)),
-			size:   int32(byteOrder.Uint32(d)),
+			fid:    int64(byteOrder.Uint64(d[2:10])),
+			offset: int32(byteOrder.Uint32(d[10:14])),
+			size:   int32(byteOrder.Uint32(d[14:18])),
 		}
 		key := d[18:]
+		log.Printf("key: %s, item = %v", key, *item)
 		fm.index.Store(string(key), item)
 		off = off + int64(s)
 	}
