@@ -3,6 +3,7 @@ package appendfile
 import (
 	"fmt"
 	"os"
+	"sync"
 )
 
 const (
@@ -16,6 +17,7 @@ type appendFile struct {
 	role   int
 	f      *os.File
 	fid    int64
+	sync.Mutex
 }
 
 func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
@@ -45,6 +47,8 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 	if af.role == Older {
 		return -1, fmt.Errorf("write operations are not supported, %v\n", af)
 	}
+	af.Lock()
+	defer af.Unlock()
 	off := af.offset
 	n, err := af.f.Write(b)
 	if err != nil {
