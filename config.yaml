@@ -3,5 +3,6 @@ data:
 server:
   mode: debug
   port: :9090
+  sequence: false
 logger:
   level: debug

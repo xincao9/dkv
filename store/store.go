@@ -1,6 +1,9 @@
 package store
 
-import "dkv/store/appendfile"
+import (
+	"dkv/store/appendfile"
+	"github.com/spf13/viper"
+)
 
 type KV struct {
 	K   []byte
@@ -25,11 +28,12 @@ type store struct {
 	shutdown chan bool
 }
 
-const (
-	sequence = false
+var (
+	sequence bool
 )
 
 func New(dir string) (*store, error) {
+	sequence = viper.GetBool("server.sequence")
 	fm, err := appendfile.NewFileManager(dir)
 	if err != nil {
 		return nil, err
