@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/natefinch/lumberjack"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 )
 
@@ -162,6 +163,9 @@ func main() {
 				"code":    500,
 				"message": "服务端错误",
 			})
+	})
+	engine.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 	})
 	if err := engine.Run(viper.GetString("server.port")); err != nil {
 		log.Fatalf("Fatal error gin: %v\n", err)
