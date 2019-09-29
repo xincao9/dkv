@@ -2,6 +2,7 @@ package appendfile
 
 import (
 	"fmt"
+	"golang.org/x/exp/mmap"
 	"os"
 	"sync"
 )
@@ -16,6 +17,7 @@ type appendFile struct {
 	offset int32
 	role   int
 	f      *os.File
+	rt     *mmap.ReaderAt
 	fid    int64
 	sync.Mutex
 }
@@ -31,7 +33,11 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 		fid:    fid,
 	}
 	var err error
-	af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+	if role == Active {
+		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+	} else {
+		af.rt, err = mmap.Open(fn)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +67,21 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 func (af *appendFile) Read(offset int64, b []byte) {
 	af.Lock()
 	defer af.Unlock()
-	af.f.ReadAt(b, offset)
+	if af.role == Active {
+		af.f.ReadAt(b, offset)
+		return
+	}
+	if af.rt == nil {
+		af.f.ReadAt(b, offset)
+		return
+	}
+	af.rt.ReadAt(b, offset)
 }
 
 func (af *appendFile) Size() (int64, error) {
+	if af.role == Older {
+		return -1, fmt.Errorf("size operations are not supported, %v\n", af)
+	}
 	fi, err := af.f.Stat()
 	if err != nil {
 		return -1, err
@@ -72,6 +89,24 @@ func (af *appendFile) Size() (int64, error) {
 	return fi.Size(), nil
 }
 
+func (af *appendFile) SetOlder() {
+	if af.role == Active {
+		return
+	}
+	af.role = Older
+	var err error
+	af.rt, err = mmap.Open(af.fn)
+	if err == nil {
+		af.f.Close()
+		af.f = nil
+	}
+}
+
 func (af *appendFile) Close() {
-	af.f.Close()
+	if af.f != nil {
+		af.f.Close()
+	}
+	if af.rt != nil {
+		af.rt.Close()
+	}
 }

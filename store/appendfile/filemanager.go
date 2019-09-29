@@ -77,7 +77,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 				oaf := fm.activeAF
 				fm.olderAF = append(fm.olderAF, fm.activeAF)
 				fm.activeAF = af
-				oaf.role = Older
+				oaf.SetOlder()
 				fm.meta.ActiveFid = fid
 				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
 				fm.IndexSave()

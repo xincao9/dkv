@@ -70,6 +70,8 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/ugorji/go v1.1.4
 github.com/ugorji/go/codec
+# golang.org/x/exp v0.0.0-20190429183610-475c5042d3f1
+golang.org/x/exp/mmap
 # golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 golang.org/x/sys/unix
 golang.org/x/sys/windows
