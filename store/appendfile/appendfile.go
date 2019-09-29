@@ -59,8 +59,9 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 }
 
 func (af *appendFile) Read(offset int64, b []byte) {
-	af.f.Seek(offset, 0)
-	af.f.Read(b)
+	af.Lock()
+	defer af.Unlock()
+	af.f.ReadAt(b, offset)
 }
 
 func (af *appendFile) Size() (int64, error) {

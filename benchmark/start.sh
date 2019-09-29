@@ -13,10 +13,10 @@ echo ""
 echo "put 压力测试"
 echo ""
 
-wrk -t1 -c2 -d300s -s put.lua 'http://localhost:9090/kv'
+wrk -t1 -c2 -d120s -s put.lua 'http://localhost:9090/kv'
 
 echo ""
 echo "get 压力测试"
 echo ""
 
-wrk -t1 -c2 -d300s -s get.lua 'http://localhost:9090/kv'
+wrk -t1 -c2 -d120s -s get.lua 'http://localhost:9090/kv'
