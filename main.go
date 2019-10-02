@@ -3,6 +3,7 @@ package main
 import (
 	"dkv/store"
 	"dkv/store/appendfile"
+	"dkv/store/ginpprof"
 	"dkv/store/meta"
 	logrus "github.com/sirupsen/logrus"
 	"log"
@@ -167,6 +168,7 @@ func main() {
 	engine.GET("/metrics", func(c *gin.Context) {
 		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 	})
+	ginpprof.Wrap(engine)
 	if err := engine.Run(viper.GetString("server.port")); err != nil {
 		log.Fatalf("Fatal error gin: %v\n", err)
 	}
