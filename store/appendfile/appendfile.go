@@ -35,17 +35,17 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 	var err error
 	if role == Active {
 		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+		off, err := af.Size()
+		if err != nil {
+			return nil, err
+		}
+		af.offset = int32(off)
 	} else {
 		af.rt, err = mmap.Open(fn)
 	}
 	if err != nil {
 		return nil, err
 	}
-	off, err := af.Size()
-	if err != nil {
-		return nil, err
-	}
-	af.offset = int32(off)
 	return af, nil
 }
 
@@ -64,24 +64,19 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 	return off, nil
 }
 
-func (af *appendFile) Read(offset int64, b []byte) {
+func (af *appendFile) Read(offset int64, b []byte) (int, error) {
 	af.Lock()
 	defer af.Unlock()
 	if af.role == Active {
-		af.f.ReadAt(b, offset)
-		return
+		return af.f.ReadAt(b, offset)
 	}
 	if af.rt == nil {
-		af.f.ReadAt(b, offset)
-		return
+		return af.f.ReadAt(b, offset)
 	}
-	af.rt.ReadAt(b, offset)
+	return af.rt.ReadAt(b, offset)
 }
 
 func (af *appendFile) Size() (int64, error) {
-	if af.role == Older {
-		return -1, fmt.Errorf("size operations are not supported, %v\n", af)
-	}
 	fi, err := af.f.Stat()
 	if err != nil {
 		return -1, err

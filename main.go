@@ -32,6 +32,7 @@ func init() {
 	viper.AddConfigPath("$HOME/.dkv")
 	viper.AddConfigPath(".")
 	viper.SetDefault("data.dir", meta.DefaultDir)
+	viper.SetDefault("data.invalidIndex", false)
 	viper.SetDefault("server.port", ":8080")
 	viper.SetDefault("logger.level", "debug")
 	viper.SetDefault("server.sequence", false)

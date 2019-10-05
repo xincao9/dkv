@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"log"
 	"os"
@@ -38,6 +39,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 	}
 	if m.ActiveFid == 0 {
 		m.ActiveFid = time.Now().UnixNano()
+		m.Save()
 	}
 	afmap := sync.Map{}
 	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
@@ -151,7 +153,7 @@ func (i i64) Less(x, y int) bool {
 func (fm *FileManager) Load() error {
 	startTime := time.Now()
 	log.Println("开始加载索引")
-	if fm.meta.InvalidIndex {
+	if viper.GetBool("data.invalidIndex") {
 		if fm.meta.OlderFids != nil {
 			sort.Sort(i64(fm.meta.OlderFids))
 			for _, fid := range fm.meta.OlderFids {
@@ -182,7 +184,7 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 	var err error
 	n := 0
 	for {
-		n, err = af.f.ReadAt(b, off)
+		n, err = af.Read(off, b)
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
@@ -197,7 +199,7 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 		}
 		s := int(kv.KeySize) + int(kv.ValueSize)
 		d := make([]byte, 7+s)
-		n, err = af.f.ReadAt(d, off)
+		n, err = af.Read(off, d)
 		kv, err = keyvalue.Decode(d)
 		if err != nil {
 			return err
@@ -226,10 +228,11 @@ var (
 
 func (fm *FileManager) IndexSave() {
 	fn := filepath.Join(fm.meta.Dir, "idx")
-	f, err := os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
 		return
 	}
+	defer f.Close()
 	fm.index.Range(func(key, value interface{}) bool {
 		k := key.(string)
 		i := value.(*Item)
@@ -254,6 +257,7 @@ func (fm *FileManager) IndexLoad() error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	b := make([]byte, 2)
 	off := int64(0)
 	n := 0
