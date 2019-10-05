@@ -253,7 +253,7 @@ func (fm *FileManager) IndexSave() {
 
 func (fm *FileManager) IndexLoad() error {
 	fn := filepath.Join(fm.meta.Dir, "idx")
-	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
+	f, err := os.OpenFile(fn, os.O_RDONLY, 0777)
 	if err != nil {
 		return err
 	}
