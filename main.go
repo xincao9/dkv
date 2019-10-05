@@ -5,9 +5,10 @@ import (
 	"dkv/store/appendfile"
 	"dkv/store/ginpprof"
 	"dkv/store/meta"
-	logrus "github.com/sirupsen/logrus"
 	"log"
 	"path/filepath"
+
+	logrus "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 	"github.com/natefinch/lumberjack"
@@ -59,7 +60,7 @@ func init() {
 }
 
 func main() {
-	store, err := store.New(viper.GetString("data.dir"))
+	store, err := store.NewStore(viper.GetString("data.dir"))
 	defer store.Close()
 	if err != nil {
 		log.Fatalf("Fatal error store: %v\n", err)

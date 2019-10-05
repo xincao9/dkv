@@ -1,6 +1,6 @@
 data:
   dir: /tmp/dkv
-  invalidIndex: false
+  invalidIndex: true
 server:
   mode: debug
   port: :9090

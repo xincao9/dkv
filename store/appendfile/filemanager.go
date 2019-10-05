@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/mmap"
 	"io"
 	"log"
 	"os"
@@ -253,7 +254,7 @@ func (fm *FileManager) IndexSave() {
 
 func (fm *FileManager) IndexLoad() error {
 	fn := filepath.Join(fm.meta.Dir, "idx")
-	f, err := os.OpenFile(fn, os.O_RDONLY, 0777)
+	f, err := mmap.Open(fn)
 	if err != nil {
 		return err
 	}
@@ -285,7 +286,6 @@ func (fm *FileManager) IndexLoad() error {
 			size:   int32(byteOrder.Uint32(d[14:18])),
 		}
 		key := d[18:]
-		log.Printf("key: %s, item = %v", key, *item)
 		fm.index.Store(string(key), item)
 		off = off + int64(s)
 	}

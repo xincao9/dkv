@@ -2,6 +2,7 @@ package store
 
 import (
 	"dkv/store/appendfile"
+
 	"github.com/spf13/viper"
 )
 
@@ -32,7 +33,7 @@ var (
 	sequence bool
 )
 
-func New(dir string) (*store, error) {
+func NewStore(dir string) (*store, error) {
 	sequence = viper.GetBool("server.sequence")
 	fm, err := appendfile.NewFileManager(dir)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 func TestNew(t *testing.T) {
 	os.RemoveAll(meta.DefaultDir)
-	s, err := New("")
+	s, err := NewStore("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -19,7 +19,7 @@ func TestNew(t *testing.T) {
 
 func TestStore_Get(t *testing.T) {
 	os.RemoveAll(meta.DefaultDir)
-	s, err := New("")
+	s, err := NewStore("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,7 +40,7 @@ func TestStore_Get(t *testing.T) {
 
 func TestStore_Delete(t *testing.T) {
 	os.RemoveAll(meta.DefaultDir)
-	s, err := New("")
+	s, err := NewStore("")
 	if err != nil {
 		t.Error(err)
 	}
