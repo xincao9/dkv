@@ -109,7 +109,7 @@ func main() {
 				"message": "服务端错误",
 			})
 	})
-	engine.POST("/kv", func(c *gin.Context) {
+	engine.PUT("/kv", func(c *gin.Context) {
 		var kv KV
 		if err := c.ShouldBindJSON(&kv); err != nil {
 			c.JSON(400, gin.H{

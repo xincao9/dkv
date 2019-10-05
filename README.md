@@ -12,7 +12,7 @@ go get github.com/xincao9/dkv
 test
 
 ```
-curl -X POST -H 'content-type:application/json' 'http://localhost:8080/kv' -d '{"k":"name", "v":"xincao9"}' -i
+curl -X PUT -H 'content-type:application/json' 'http://localhost:8080/kv' -d '{"k":"name", "v":"xincao9"}' -i
 
 curl -X GET 'http://localhost:8080/kv/name'
 

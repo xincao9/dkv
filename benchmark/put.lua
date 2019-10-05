@@ -1,4 +1,4 @@
-wrk.method="POST"
+wrk.method="PUT"
 wrk.headers["content-type"]="application/json"
 
 request = function()
