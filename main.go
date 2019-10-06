@@ -32,9 +32,10 @@ func init() {
 	viper.AddConfigPath(".")
 	viper.SetDefault("data.dir", meta.DefaultDir)
 	viper.SetDefault("data.invalidIndex", false)
-	viper.SetDefault("server.port", ":8080")
+	viper.SetDefault("server.mode", "debug")
+	viper.SetDefault("server.port", ":9090")
+	viper.SetDefault("server.sequence", true)
 	viper.SetDefault("logger.level", "debug")
-	viper.SetDefault("server.sequence", false)
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalf("Fatal error config file: %v\n", err)
