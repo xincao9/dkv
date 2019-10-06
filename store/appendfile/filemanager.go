@@ -66,25 +66,36 @@ func NewFileManager(dir string) (*FileManager, error) {
 	}
 	go func() {
 		for range time.Tick(time.Second) {
-			s, err := fm.activeAF.Size()
-			if err != nil {
-				continue
-			}
-			if s > 1024*1024*100 {
-				fid := time.Now().UnixNano()
-				af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Active, fid)
+			err := func() error {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Printf("定时任务异常 %v\n", err)
+					}
+				}()
+				s, err := fm.activeAF.Size()
 				if err != nil {
-					continue
+					return err
 				}
-				afmap.Store(fid, af)
-				oaf := fm.activeAF
-				fm.olderAF = append(fm.olderAF, fm.activeAF)
-				fm.activeAF = af
-				oaf.SetOlder()
-				fm.meta.ActiveFid = fid
-				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
-				fm.IndexSave()
-				fm.meta.Save()
+				if s > 1024*1024*1024 {
+					fid := time.Now().UnixNano()
+					af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Active, fid)
+					if err != nil {
+						return err
+					}
+					afmap.Store(fid, af)
+					oaf := fm.activeAF
+					fm.olderAF = append(fm.olderAF, oaf)
+					fm.activeAF = af
+					oaf.SetOlder()
+					fm.meta.ActiveFid = fid
+					fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
+					fm.meta.Save()
+					fm.IndexSave()
+				}
+				return nil
+			}()
+			if err != nil {
+				log.Printf("定时任务异常 %v\n", err)
 			}
 		}
 	}()
@@ -228,6 +239,10 @@ var (
 )
 
 func (fm *FileManager) IndexSave() {
+	startTime := time.Now()
+	defer func() {
+		log.Printf("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
+	}()
 	fn := filepath.Join(fm.meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {

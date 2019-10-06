@@ -5,15 +5,13 @@ import (
 	"dkv/store/appendfile"
 	"dkv/store/ginpprof"
 	"dkv/store/meta"
-	"log"
-	"path/filepath"
-
-	logrus "github.com/sirupsen/logrus"
-
 	"github.com/gin-gonic/gin"
 	"github.com/natefinch/lumberjack"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	logrus "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"log"
+	"path/filepath"
 )
 
 type KV struct {
