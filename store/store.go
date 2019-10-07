@@ -2,8 +2,7 @@ package store
 
 import (
 	"dkv/store/appendfile"
-
-	"github.com/spf13/viper"
+	"dkv/store/config"
 )
 
 type KV struct {
@@ -22,7 +21,7 @@ type WOps struct {
 	resp chan bool
 }
 
-type store struct {
+type Store struct {
 	fm       *appendfile.FileManager
 	rop      chan *ROps
 	wop      chan *WOps
@@ -33,8 +32,8 @@ var (
 	sequence bool
 )
 
-func NewStore(dir string) (*store, error) {
-	sequence = viper.GetBool("server.sequence")
+func NewStore(dir string) (*Store, error) {
+	sequence = config.D.GetBool("server.sequence")
 	fm, err := appendfile.NewFileManager(dir)
 	if err != nil {
 		return nil, err
@@ -64,10 +63,10 @@ func NewStore(dir string) (*store, error) {
 			}
 		}()
 	}
-	return &store{fm: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
+	return &Store{fm: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
 }
 
-func (s *store) Get(k []byte) ([]byte, error) {
+func (s *Store) Get(k []byte) ([]byte, error) {
 	if sequence {
 		r := &ROps{
 			kv:   &KV{K: k},
@@ -80,7 +79,7 @@ func (s *store) Get(k []byte) ([]byte, error) {
 	return s.fm.Read(k)
 }
 
-func (s *store) Put(k, v []byte) error {
+func (s *Store) Put(k, v []byte) error {
 	if sequence {
 		w := &WOps{
 			kv:   &KV{K: k, V: v},
@@ -93,7 +92,7 @@ func (s *store) Put(k, v []byte) error {
 	return s.fm.Write(k, v)
 }
 
-func (s *store) Delete(k []byte) error {
+func (s *Store) Delete(k []byte) error {
 	_, err := s.Get(k)
 	if err != nil {
 		return err
@@ -101,7 +100,7 @@ func (s *store) Delete(k []byte) error {
 	return s.Put(k, []byte(appendfile.DeleteFlag))
 }
 
-func (s *store) Close() {
+func (s *Store) Close() {
 	s.shutdown <- true
 	s.fm.Close()
 }

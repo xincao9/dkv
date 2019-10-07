@@ -1,15 +1,15 @@
 package appendfile
 
 import (
+	"dkv/store/config"
 	"dkv/store/keyvalue"
+	"dkv/store/logger"
 	"dkv/store/meta"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/mmap"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -69,7 +69,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 			err := func() error {
 				defer func() {
 					if err := recover(); err != nil {
-						log.Printf("定时任务异常 %v\n", err)
+						logger.D.Errorf("定时任务异常 %v\n", err)
 					}
 				}()
 				s, err := fm.activeAF.Size()
@@ -95,7 +95,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 				return nil
 			}()
 			if err != nil {
-				log.Printf("定时任务异常 %v\n", err)
+				logger.D.Errorf("定时任务异常 %v\n", err)
 			}
 		}
 	}()
@@ -164,8 +164,8 @@ func (i i64) Less(x, y int) bool {
 
 func (fm *FileManager) Load() error {
 	startTime := time.Now()
-	log.Println("开始加载索引")
-	if viper.GetBool("data.invalidIndex") {
+	logger.D.Infof("开始加载索引")
+	if config.D.GetBool("data.invalidIndex") {
 		if fm.meta.OlderFids != nil {
 			sort.Sort(i64(fm.meta.OlderFids))
 			for _, fid := range fm.meta.OlderFids {
@@ -186,7 +186,7 @@ func (fm *FileManager) Load() error {
 			return err
 		}
 	}
-	log.Printf("加载索引完成，耗时 %.2f 秒\n", time.Since(startTime).Seconds())
+	logger.D.Infof("加载索引完成，耗时 %.2f 秒\n", time.Since(startTime).Seconds())
 	return nil
 }
 
@@ -241,7 +241,7 @@ var (
 func (fm *FileManager) IndexSave() {
 	startTime := time.Now()
 	defer func() {
-		log.Printf("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
+		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
 	}()
 	fn := filepath.Join(fm.meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
@@ -261,7 +261,7 @@ func (fm *FileManager) IndexSave() {
 		copy(b[18:kl+18], k)
 		_, err := f.Write(b)
 		if err != nil {
-			log.Printf("index save key = %s, item = %v, err = %v\n", k, i, err)
+			logger.D.Errorf("index save key = %s, item = %v, err = %v\n", k, i, err)
 		}
 		return true
 	})
