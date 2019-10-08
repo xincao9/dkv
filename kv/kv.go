@@ -5,6 +5,7 @@ import (
 	"dkv/store/appendfile"
 	"dkv/store/logger"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type KV struct {
@@ -12,21 +13,21 @@ type KV struct {
 	V string `json:"v"`
 }
 
-func Route(store *store.Store, engine *gin.Engine) {
+func Route(engine *gin.Engine) {
 	engine.GET("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
-			c.JSON(400, gin.H{
-				"code":    400,
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    http.StatusBadRequest,
 				"message": "参数错误",
 			})
 			return
 		}
-		val, err := store.Get([]byte(key))
+		val, err := store.D.Get([]byte(key))
 		if err == nil {
-			c.JSON(200,
+			c.JSON(http.StatusOK,
 				gin.H{
-					"code":    200,
+					"code":    http.StatusOK,
 					"message": "成功",
 					"kv": &KV{
 						K: key,
@@ -36,9 +37,9 @@ func Route(store *store.Store, engine *gin.Engine) {
 			return
 		}
 		if err == appendfile.KeyNotFound {
-			c.JSON(200,
+			c.JSON(http.StatusOK,
 				gin.H{
-					"code":    200,
+					"code":    http.StatusOK,
 					"message": "没有找到",
 					"kv": &KV{
 						K: key,
@@ -48,67 +49,67 @@ func Route(store *store.Store, engine *gin.Engine) {
 			return
 		}
 		logger.D.Errorf("method:get path:/kv/%s err=%s\n", key, err)
-		c.JSON(500,
+		c.JSON(http.StatusInternalServerError,
 			gin.H{
-				"code":    500,
+				"code":    http.StatusInternalServerError,
 				"message": "服务端错误",
 			})
 	})
 	engine.PUT("/kv", func(c *gin.Context) {
 		var kv KV
 		if err := c.ShouldBindJSON(&kv); err != nil {
-			c.JSON(400, gin.H{
-				"code":    400,
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    http.StatusBadRequest,
 				"message": "参数错误",
 			})
 			return
 		}
-		err := store.Put([]byte(kv.K), []byte(kv.V))
+		err := store.D.Put([]byte(kv.K), []byte(kv.V))
 		if err != nil {
 			logger.D.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
-			c.JSON(500,
+			c.JSON(http.StatusInternalServerError,
 				gin.H{
-					"code":    500,
+					"code":    http.StatusInternalServerError,
 					"message": "服务端错误",
 				})
 			return
 		}
-		c.JSON(200,
+		c.JSON(http.StatusOK,
 			gin.H{
-				"code":    200,
+				"code":    http.StatusOK,
 				"message": "成功",
 			})
 	})
 	engine.DELETE("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
-			c.JSON(400, gin.H{
-				"code":    400,
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    http.StatusBadRequest,
 				"message": "参数错误",
 			})
 			return
 		}
-		err := store.Delete([]byte(key))
+		err := store.D.Delete([]byte(key))
 		if err == nil {
-			c.JSON(200,
+			c.JSON(http.StatusOK,
 				gin.H{
-					"code":    200,
+					"code":    http.StatusOK,
 					"message": "成功",
 				})
 			return
 		}
 		if err == appendfile.KeyNotFound {
-			c.JSON(200,
+			c.JSON(http.StatusOK,
 				gin.H{
-					"code":    200,
+					"code":    http.StatusOK,
 					"message": "没有找到",
 				})
 			return
 		}
 		logger.D.Errorf("method:delete path:/kv/%s err=%s\n", key, err)
-		c.JSON(500,
+		c.JSON(http.StatusInternalServerError,
 			gin.H{
-				"code":    500,
+				"code":    http.StatusInternalServerError,
 				"message": "服务端错误",
 			})
 	})

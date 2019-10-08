@@ -3,7 +3,21 @@ package store
 import (
 	"dkv/store/appendfile"
 	"dkv/store/config"
+	"log"
 )
+
+var (
+	D *Store
+)
+
+func init() {
+	// 启动存储引擎
+	var err error
+	D, err = NewStore(config.D.GetString("data.dir"))
+	if err != nil {
+		log.Fatalf("Fatal error store: %v\n", err)
+	}
+}
 
 type KV struct {
 	K   []byte
