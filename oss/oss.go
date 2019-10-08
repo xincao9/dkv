@@ -47,19 +47,21 @@ func Route(engine *gin.Engine) {
 		items := make([]struct {
 			Filename string `json:"filename"`
 			Oid      string `json:"oid"`
-			status   bool   `json:"status"`
+			Status   bool   `json:"Status"`
 		}, len(files))
 		for i, file := range files {
 			f, err := file.Open()
 			items[i].Filename = file.Filename
-			items[i].status = true
+			items[i].Status = true
 			if err != nil {
-				items[i].status = false
+				items[i].Status = false
+				logger.D.Error(err)
 				continue
 			}
 			val, err := ioutil.ReadAll(f)
 			if err != nil {
-				items[i].status = false
+				items[i].Status = false
+				logger.D.Error(err)
 				continue
 			}
 			h := md5.New()
@@ -70,7 +72,9 @@ func Route(engine *gin.Engine) {
 				err = store.D.Put(key, val)
 			}
 			if err != nil {
-				items[i].status = false
+				items[i].Status = false
+				logger.D.Error(err)
+				continue
 			}
 			items[i].Oid = string(key)
 		}
