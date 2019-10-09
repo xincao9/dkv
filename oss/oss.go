@@ -22,7 +22,7 @@ func Route(engine *gin.Engine) {
 		}
 		val, err := store.D.Get([]byte(oid))
 		if err == nil {
-			c.Data(http.StatusOK, "application/octet-stream", val)
+			c.Data(http.StatusOK, http.DetectContentType(val), val)
 			return
 		}
 		if err == appendfile.KeyNotFound {
