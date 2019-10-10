@@ -5,6 +5,7 @@ import (
 	"dkv/store/keyvalue"
 	"dkv/store/logger"
 	"dkv/store/meta"
+	"dkv/store/metrics"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -109,11 +110,13 @@ func NewFileManager(dir string) (*FileManager, error) {
 func (fm *FileManager) Write(k []byte, v []byte) error {
 	kv, err := keyvalue.NewKeyValue(k, v)
 	if err != nil {
+		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
 	b := keyvalue.Encode(kv)
 	off, err := fm.activeAF.Write(b)
 	if err != nil {
+		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
 	fm.index.Store(string(k), &Item{
@@ -121,6 +124,7 @@ func (fm *FileManager) Write(k []byte, v []byte) error {
 		offset: off,
 		size:   int32(len(b)),
 	})
+	metrics.PutCount.WithLabelValues("success").Inc()
 	return nil
 }
 
@@ -129,23 +133,28 @@ var KeyNotFound = errors.New("key is not found")
 func (fm *FileManager) Read(k []byte) ([]byte, error) {
 	v, state := fm.index.Load(string(k))
 	if state == false {
+		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, KeyNotFound
 	}
 	item := v.(*Item)
 	b := make([]byte, item.size)
 	af, ok := fm.afmap.Load(item.fid)
 	if ok == false {
+		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, fmt.Errorf("item = %v is exception", *item)
 	}
 	af.(*appendFile).Read(int64(item.offset), b)
 	kv, err := keyvalue.Decode(b)
 	if err != nil {
+		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, err
 	}
 	if string(kv.Value) == DeleteFlag {
+		metrics.GetCount.WithLabelValues("failure").Inc()
 		fm.index.Delete(string(kv.Value))
 		return nil, KeyNotFound
 	}
+	metrics.GetCount.WithLabelValues("success").Inc()
 	return kv.Value, nil
 }
 
@@ -249,7 +258,9 @@ func (fm *FileManager) IndexSave() {
 		return
 	}
 	defer f.Close()
+	os := 0
 	fm.index.Range(func(key, value interface{}) bool {
+		os++
 		k := key.(string)
 		i := value.(*Item)
 		kl := len(k)
@@ -265,6 +276,7 @@ func (fm *FileManager) IndexSave() {
 		}
 		return true
 	})
+	metrics.ObjectCurrentCount.Set(float64(os))
 }
 
 func (fm *FileManager) IndexLoad() error {
