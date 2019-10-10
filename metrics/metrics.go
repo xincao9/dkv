@@ -1,6 +1,10 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
 
 var (
 	ObjectCurrentCount prometheus.Gauge
@@ -23,4 +27,10 @@ func init() {
 		Help: "get操作数",
 	}, []string{"status"})
 	prometheus.MustRegister(ObjectCurrentCount, PutCount, GetCount)
+}
+
+func Route(engine *gin.Engine) {
+	engine.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
 }

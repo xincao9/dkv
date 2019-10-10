@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"dkv/store/config"
+	"dkv/config"
 	"github.com/natefinch/lumberjack"
 	"github.com/sirupsen/logrus"
 	"log"

@@ -1,8 +1,8 @@
 package store
 
 import (
+	"dkv/config"
 	"dkv/store/appendfile"
-	"dkv/store/config"
 	"log"
 )
 
@@ -36,7 +36,7 @@ type WOps struct {
 }
 
 type Store struct {
-	fm       *appendfile.FileManager
+	fm       *appendfile.AppendFileManager
 	rop      chan *ROps
 	wop      chan *WOps
 	shutdown chan bool
@@ -48,7 +48,7 @@ var (
 
 func NewStore(dir string) (*Store, error) {
 	sequence = config.D.GetBool("server.sequence")
-	fm, err := appendfile.NewFileManager(dir)
+	fm, err := appendfile.NewAppendFileManager(dir)
 	if err != nil {
 		return nil, err
 	}

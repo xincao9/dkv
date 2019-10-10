@@ -2,9 +2,9 @@ package oss
 
 import (
 	"crypto/md5"
+	"dkv/logger"
 	"dkv/store"
 	"dkv/store/appendfile"
-	"dkv/store/logger"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -82,7 +82,7 @@ func Route(engine *gin.Engine) {
 			gin.H{
 				"code":    http.StatusOK,
 				"message": "成功",
-				"items":  items,
+				"items":   items,
 			})
 	})
 }

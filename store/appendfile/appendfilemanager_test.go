@@ -9,7 +9,7 @@ import (
 
 func TestNewFileManager(t *testing.T) {
 	os.RemoveAll(meta.DefaultDir)
-	fm, err := NewFileManager("")
+	fm, err := NewAppendFileManager("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,7 +28,7 @@ func TestNewFileManager(t *testing.T) {
 
 func BenchmarkFileManager_Write(b *testing.B) {
 	os.RemoveAll(meta.DefaultDir)
-	fm, err := NewFileManager("")
+	fm, err := NewAppendFileManager("")
 	if err != nil {
 		b.Error(err)
 	}
@@ -42,7 +42,7 @@ func BenchmarkFileManager_Write(b *testing.B) {
 
 func TestFileManager_Load(t *testing.T) {
 	os.RemoveAll(meta.DefaultDir)
-	fm, err := NewFileManager("")
+	fm, err := NewAppendFileManager("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,7 +51,7 @@ func TestFileManager_Load(t *testing.T) {
 		t.Error(err)
 	}
 	fm.Close()
-	fm, err = NewFileManager("")
+	fm, err = NewAppendFileManager("")
 	if err != nil {
 		t.Error(err)
 	}

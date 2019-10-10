@@ -1,12 +1,10 @@
 package appendfile
 
 import (
-	"dkv/store/config"
-	"dkv/store/keyvalue"
-	"dkv/store/logger"
+	"dkv/config"
+	"dkv/logger"
+	"dkv/metrics"
 	"dkv/store/meta"
-	"dkv/store/metrics"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/mmap"
@@ -26,7 +24,7 @@ type Item struct {
 	size   int32
 }
 
-type FileManager struct {
+type AppendFileManager struct {
 	meta     *meta.Meta
 	activeAF *appendFile
 	olderAF  []*appendFile
@@ -34,7 +32,7 @@ type FileManager struct {
 	afmap    sync.Map
 }
 
-func NewFileManager(dir string) (*FileManager, error) {
+func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	m, err := meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
@@ -58,7 +56,7 @@ func NewFileManager(dir string) (*FileManager, error) {
 		olderAF = append(olderAF, af)
 		afmap.Store(fid, af)
 	}
-	fm := &FileManager{
+	fm := &AppendFileManager{
 		meta:     m,
 		activeAF: activeAF,
 		olderAF:  olderAF,
@@ -107,13 +105,13 @@ func NewFileManager(dir string) (*FileManager, error) {
 	return fm, nil
 }
 
-func (fm *FileManager) Write(k []byte, v []byte) error {
-	kv, err := keyvalue.NewKeyValue(k, v)
+func (fm *AppendFileManager) Write(k []byte, v []byte) error {
+	kv, err := NewKeyValue(k, v)
 	if err != nil {
 		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
-	b := keyvalue.Encode(kv)
+	b := Encode(kv)
 	off, err := fm.activeAF.Write(b)
 	if err != nil {
 		metrics.PutCount.WithLabelValues("failure").Inc()
@@ -130,7 +128,7 @@ func (fm *FileManager) Write(k []byte, v []byte) error {
 
 var KeyNotFound = errors.New("key is not found")
 
-func (fm *FileManager) Read(k []byte) ([]byte, error) {
+func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	v, state := fm.index.Load(string(k))
 	if state == false {
 		metrics.GetCount.WithLabelValues("failure").Inc()
@@ -144,7 +142,7 @@ func (fm *FileManager) Read(k []byte) ([]byte, error) {
 		return nil, fmt.Errorf("item = %v is exception", *item)
 	}
 	af.(*appendFile).Read(int64(item.offset), b)
-	kv, err := keyvalue.Decode(b)
+	kv, err := Decode(b)
 	if err != nil {
 		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, err
@@ -171,7 +169,7 @@ func (i i64) Less(x, y int) bool {
 	return i[x] < i[y]
 }
 
-func (fm *FileManager) Load() error {
+func (fm *AppendFileManager) Load() error {
 	startTime := time.Now()
 	logger.D.Infof("开始加载索引")
 	if config.D.GetBool("data.invalidIndex") {
@@ -199,7 +197,7 @@ func (fm *FileManager) Load() error {
 	return nil
 }
 
-func (fm *FileManager) loadAppendFile(af *appendFile) error {
+func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 	b := make([]byte, 7)
 	off := int64(0)
 	var err error
@@ -214,14 +212,14 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 		if n < 7 {
 			break
 		}
-		kv, err := keyvalue.DecodeHeader(b)
+		kv, err := DecodeHeader(b)
 		if err != nil {
 			return err
 		}
 		s := int(kv.KeySize) + int(kv.ValueSize)
 		d := make([]byte, 7+s)
 		n, err = af.Read(off, d)
-		kv, err = keyvalue.Decode(d)
+		kv, err = Decode(d)
 		if err != nil {
 			return err
 		}
@@ -235,7 +233,7 @@ func (fm *FileManager) loadAppendFile(af *appendFile) error {
 	return nil
 }
 
-func (fm *FileManager) Close() {
+func (fm *AppendFileManager) Close() {
 	fm.activeAF.Close()
 	for _, af := range fm.olderAF {
 		af.Close()
@@ -243,11 +241,7 @@ func (fm *FileManager) Close() {
 	fm.meta.Save()
 }
 
-var (
-	byteOrder = binary.BigEndian
-)
-
-func (fm *FileManager) IndexSave() {
+func (fm *AppendFileManager) IndexSave() {
 	startTime := time.Now()
 	defer func() {
 		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
@@ -279,7 +273,7 @@ func (fm *FileManager) IndexSave() {
 	metrics.ObjectCurrentCount.Set(float64(os))
 }
 
-func (fm *FileManager) IndexLoad() error {
+func (fm *AppendFileManager) IndexLoad() error {
 	fn := filepath.Join(fm.meta.Dir, "idx")
 	f, err := mmap.Open(fn)
 	if err != nil {

@@ -1,4 +1,4 @@
-package keyvalue
+package appendfile
 
 import (
 	"encoding/binary"

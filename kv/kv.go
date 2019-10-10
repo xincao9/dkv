@@ -1,11 +1,13 @@
 package kv
 
 import (
+	"dkv/cache"
+	"dkv/logger"
 	"dkv/store"
 	"dkv/store/appendfile"
-	"dkv/store/logger"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type KV struct {
@@ -23,8 +25,24 @@ func Route(engine *gin.Engine) {
 			})
 			return
 		}
-		val, err := store.D.Get([]byte(key))
+		var val []byte
+		ci, err := cache.D.Value(key)
 		if err == nil {
+			val = ci.Data().([]byte)
+			c.JSON(http.StatusOK,
+				gin.H{
+					"code":    http.StatusOK,
+					"message": "成功",
+					"kv": &KV{
+						K: key,
+						V: string(val),
+					},
+				})
+			return
+		}
+		val, err = store.D.Get([]byte(key))
+		if err == nil {
+			cache.D.Add(key, time.Second*30, val)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -74,6 +92,7 @@ func Route(engine *gin.Engine) {
 				})
 			return
 		}
+		cache.D.Delete(kv.K)
 		c.JSON(http.StatusOK,
 			gin.H{
 				"code":    http.StatusOK,
@@ -91,6 +110,7 @@ func Route(engine *gin.Engine) {
 		}
 		err := store.D.Delete([]byte(key))
 		if err == nil {
+			cache.D.Delete(key)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
