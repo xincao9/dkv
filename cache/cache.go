@@ -17,6 +17,10 @@ func init() {
 		BufferItems: 64,
 	})
 	if err != nil {
-		log.Fatalf("Fatal error config file cache: %v\n", err)
+		log.Fatalf("Fatal error cache: %v\n", err)
 	}
+}
+
+func Close () {
+	C.Close()
 }

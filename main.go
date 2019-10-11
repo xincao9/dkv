@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dkv/cache"
 	"dkv/config"
 	"dkv/kv"
 	"dkv/logger"
@@ -16,6 +17,7 @@ import (
 func main() {
 	// 启动存储引擎
 	defer store.D.Close()
+	defer cache.Close()
 
 	// 启动http服务
 	gin.SetMode(config.D.GetString("server.mode"))

@@ -26,6 +26,6 @@ func init() {
 	D.SetDefault("logger.level", "debug")
 	err := D.ReadInConfig()
 	if err != nil {
-		log.Fatalf("Fatal error config file: %v\n", err)
+		log.Fatalf("Fatal error config : %v\n", err)
 	}
 }
