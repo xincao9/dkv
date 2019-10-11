@@ -7,7 +7,6 @@ import (
 	"dkv/store/appendfile"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
 )
 
 type KV struct {
@@ -26,9 +25,9 @@ func Route(engine *gin.Engine) {
 			return
 		}
 		var val []byte
-		ci, err := cache.D.Value(key)
-		if err == nil {
-			val = ci.Data().([]byte)
+		v, state := cache.C.Get(key)
+		if state {
+			val = v.([]byte)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -40,9 +39,9 @@ func Route(engine *gin.Engine) {
 				})
 			return
 		}
-		val, err = store.D.Get([]byte(key))
+		val, err := store.D.Get([]byte(key))
 		if err == nil {
-			cache.D.Add(key, time.Second*30, val)
+			cache.C.Set(key, val, 0)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -92,7 +91,7 @@ func Route(engine *gin.Engine) {
 				})
 			return
 		}
-		cache.D.Delete(kv.K)
+		cache.C.Del(kv.K)
 		c.JSON(http.StatusOK,
 			gin.H{
 				"code":    http.StatusOK,
@@ -110,7 +109,7 @@ func Route(engine *gin.Engine) {
 		}
 		err := store.D.Delete([]byte(key))
 		if err == nil {
-			cache.D.Delete(key)
+			cache.C.Del(key)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,

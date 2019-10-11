@@ -2,11 +2,11 @@ package main
 
 import (
 	"dkv/config"
-	"dkv/ginpprof"
 	"dkv/kv"
 	"dkv/logger"
 	"dkv/metrics"
 	"dkv/oss"
+	"dkv/pprof"
 	"dkv/store"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ func main() {
 	kv.Route(engine)      // 注册KV服务接口
 	oss.Route(engine)     // 注册OSS服务接口
 	metrics.Route(engine) // 注册普罗米修斯接口
-	ginpprof.Wrap(engine) // 注册pprof接口
+	pprof.Wrap(engine)    // 注册pprof接口
 	if err := engine.Run(config.D.GetString("server.port")); err != nil {
 		log.Fatalf("Fatal error gin: %v\n", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/exp/mmap"
 	"os"
+	"runtime/debug"
 	"sync"
 )
 
@@ -44,6 +45,7 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 		af.rt, err = mmap.Open(fn)
 	}
 	if err != nil {
+		debug.PrintStack()
 		return nil, err
 	}
 	return af, nil

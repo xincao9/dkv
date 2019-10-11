@@ -1,5 +1,8 @@
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
+# github.com/dgraph-io/ristretto v0.0.0-20191010170704-2ba187ef9534
+github.com/dgraph-io/ristretto
+github.com/dgraph-io/ristretto/z
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3
@@ -43,8 +46,8 @@ github.com/natefinch/lumberjack
 # github.com/pelletier/go-toml v1.2.0
 github.com/pelletier/go-toml
 # github.com/prometheus/client_golang v1.1.0
-github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/internal
 # github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 github.com/prometheus/client_model/go

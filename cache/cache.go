@@ -1,17 +1,22 @@
 package cache
 
 import (
-	"dkv/logger"
-	"github.com/muesli/cache2go"
-	"github.com/sirupsen/logrus"
+	"github.com/dgraph-io/ristretto"
 	"log"
 )
 
 var (
-	D *cache2go.CacheTable
+	C *ristretto.Cache
 )
 
-func init () {
-	D = cache2go.Cache("dkv")
-	D.SetLogger(log.New(logger.D.WriterLevel(logrus.DebugLevel), "", log.LstdFlags))
+func init() {
+	var err error
+	C, err = ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,
+		MaxCost:     1 << 30,
+		BufferItems: 64,
+	})
+	if err != nil {
+		log.Fatalf("Fatal error config file cache: %v\n", err)
+	}
 }

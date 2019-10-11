@@ -1,4 +1,4 @@
-package ginpprof
+package pprof
 
 import (
 	"github.com/gin-gonic/gin"
