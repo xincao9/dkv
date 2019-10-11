@@ -22,7 +22,7 @@ func main() {
 	// 启动http服务
 	gin.SetMode(config.D.GetString("server.mode"))
 	engine := gin.New()
-	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{Output: logger.D.WriterLevel(logrus.DebugLevel)}), gin.Recovery())
+	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{Output: logger.D.WriterLevel(logrus.DebugLevel)}), gin.RecoveryWithWriter(logger.D.WriterLevel(logrus.ErrorLevel)))
 	kv.Route(engine)      // 注册KV服务接口
 	oss.Route(engine)     // 注册OSS服务接口
 	metrics.Route(engine) // 注册普罗米修斯接口

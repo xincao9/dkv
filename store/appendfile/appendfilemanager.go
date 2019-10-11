@@ -44,6 +44,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	afmap := sync.Map{}
 	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
 	if err != nil {
+		logger.D.Errorf("open active fid=%d, err=%v\n", m.ActiveFid, err)
 		return nil, err
 	}
 	afmap.Store(m.ActiveFid, activeAF)
@@ -51,6 +52,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	for _, fid := range m.OlderFids {
 		af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Older, fid)
 		if err != nil {
+			logger.D.Errorf("open older fid=%d, err=%v\n", fid, err)
 			return nil, err
 		}
 		olderAF = append(olderAF, af)
