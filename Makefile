@@ -1,7 +1,6 @@
 GOPATH:=$(shell go env GOPATH)
 
 build:
-	rm dkv
 	go build -tags=jsoniter -o dkv main.go
 
 test:

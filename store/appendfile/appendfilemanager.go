@@ -34,6 +34,7 @@ type AppendFileManager struct {
 	olderAF  []*appendFile
 	index    sync.Map
 	afmap    sync.Map
+	counter  sync.Map
 }
 
 func NewAppendFileManager(dir string) (*AppendFileManager, error) {
@@ -102,6 +103,18 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 					fm.meta.Save()
 					fm.IndexSave()
 				}
+				fm.counter.Range(func(key, value interface{}) bool {
+					counter := value.(int)
+					if counter > 200 {
+						af, state := fm.afmap.Load(key)
+						if state {
+							err = fm.Merge(af.(*appendFile))
+							if err == nil {
+								fm.counter.Delete(key)
+							}
+						}
+					}
+				})
 				return nil
 			}()
 			if err != nil {
@@ -128,6 +141,19 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
+
+	val, state := fm.index.Load(string(k))
+	if state {
+		item := val.(*Item)
+		counter := 0
+		c, state := fm.counter.Load(item.fid)
+		if state {
+			counter = c.(int)
+		}
+		counter++
+		fm.counter.Store(item.fid, counter)
+	}
+
 	fm.index.Store(string(k), &Item{
 		fid:    fm.activeAF.fid,
 		offset: off,
@@ -322,4 +348,65 @@ func (fm *AppendFileManager) IndexLoad() error {
 		off = off + int64(s)
 	}
 	return nil
+}
+
+func (fm *AppendFileManager) Merge(af *appendFile) error {
+	b := make([]byte, 7)
+	off := int64(0)
+	var err error
+	n := 0
+	for {
+		n, err = af.Read(off, b)
+		if err == io.EOF {
+			fm.Remove(af)
+			return nil
+		} else if err != nil {
+			return err
+		}
+		if n < 7 {
+			break
+		}
+		kv, err := DecodeHeader(b)
+		if err != nil {
+			return err
+		}
+		s := int(kv.KeySize) + int(kv.ValueSize)
+		d := make([]byte, 7+s)
+		n, err = af.Read(off, d)
+		kv, err = Decode(d)
+		if err != nil {
+			return err
+		}
+		v, state := fm.index.Load(string(kv.Key))
+		if state {
+			item := v.(*Item)
+			if af.fid == item.fid && int32(off) == item.offset && int32(7+s) == item.size {
+				if string(kv.Value) != DeleteFlag {
+					err = fm.Write(kv.Key, kv.Value)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+		off = off + int64(7) + int64(s)
+	}
+	return nil
+}
+
+func (fm *AppendFileManager) Remove(af *appendFile) {
+	if af.role != Older {
+		return
+	}
+	fm.afmap.Delete(af.fid)
+	af.Close()
+	os.Remove(af.fn)
+	ofids := make([]int64, 0)
+	for _, fid := range fm.meta.OlderFids {
+		if fid != af.fid {
+			ofids = append(ofids, fid)
+		}
+	}
+	fm.meta.OlderFids = ofids
+	fm.meta.Save()
 }
