@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -103,17 +104,37 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 					fm.meta.Save()
 					fm.IndexSave()
 				}
-				fm.counter.Range(func(key, value interface{}) bool {
-					counter := value.(int)
-					if counter > 200 {
-						af, state := fm.afmap.Load(key)
+				return nil
+			}()
+			if err != nil {
+				logger.D.Errorf("定时任务异常 %v\n", err)
+			}
+		}
+	}()
+	go func() {
+		for range time.Tick(time.Second) {
+			err := func() error {
+				defer func() {
+					if err := recover(); err != nil {
+						logger.D.Errorf("定时任务异常 %v\n", err)
+					}
+				}()
+				fm.counter.Range(func(fid, value interface{}) bool {
+					count := value.(*uint32)
+					if *count > 200 {
+						af, state := fm.afmap.Load(fid)
 						if state {
 							err = fm.Merge(af.(*appendFile))
 							if err == nil {
-								fm.counter.Delete(key)
+								fm.Remove(af.(*appendFile))
+								fm.counter.Delete(fid)
+								logger.D.Infof("fid = %d merge success\n", fid.(int64))
+							} else {
+								logger.D.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
 							}
 						}
 					}
+					return true
 				})
 				return nil
 			}()
@@ -141,19 +162,18 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
-
 	val, state := fm.index.Load(string(k))
 	if state {
 		item := val.(*Item)
-		counter := 0
 		c, state := fm.counter.Load(item.fid)
 		if state {
-			counter = c.(int)
+			atomic.AddUint32(c.(*uint32), 1)
+			fm.counter.Store(item.fid, c)
+		} else {
+			count := uint32(1)
+			fm.counter.Store(item.fid, &count)
 		}
-		counter++
-		fm.counter.Store(item.fid, counter)
 	}
-
 	fm.index.Store(string(k), &Item{
 		fid:    fm.activeAF.fid,
 		offset: off,
@@ -358,7 +378,6 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 	for {
 		n, err = af.Read(off, b)
 		if err == io.EOF {
-			fm.Remove(af)
 			return nil
 		} else if err != nil {
 			return err

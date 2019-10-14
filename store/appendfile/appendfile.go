@@ -89,16 +89,16 @@ func (af *appendFile) Size() (int64, error) {
 }
 
 func (af *appendFile) SetOlder() {
-	if af.role == Active {
+	if af.role == Older {
 		return
 	}
 	af.role = Older
-	var err error
-	af.rt, err = mmap.Open(af.fn)
-	if err == nil {
-		af.f.Close()
-		af.f = nil
-	}
+	//var err error
+	//af.rt, err = mmap.Open(af.fn)
+	//if err == nil {
+	//	af.f.Close()
+	//	af.f = nil
+	//}
 }
 
 func (af *appendFile) Close() {
