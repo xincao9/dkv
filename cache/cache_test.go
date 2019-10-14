@@ -1,43 +1,38 @@
 package cache
 
 import (
+	"strconv"
 	"testing"
-	"time"
 )
 
-// ristretto set 操作异步生效
 func TestSet(t *testing.T) {
-	C.Set("k", "v", 0)
+	Set([]byte("k"), []byte("v"))
 }
 
 func TestGet(t *testing.T) {
-	C.Set("k", "v", 0)
-	time.Sleep(time.Second)
-	_, state := C.Get("k")
-	if state == false {
+	Set([]byte("k"), []byte("v"))
+	val := Get([]byte("k"))
+	if val == nil {
 		t.Error("应该包含 key = k, value = v")
 	}
 }
 
-// ristretto del 操作异步生效
 func TestDel(t *testing.T) {
-	C.Set("k", "v", 0)
-	time.Sleep(time.Second)
-	_, state := C.Get("k")
-	if state == false {
+	Set([]byte("k"), []byte("v"))
+	val := Get([]byte("k"))
+	if val == nil {
 		t.Error("应该包含 key = k, value = v")
 	}
-	C.Del("k")
-	time.Sleep(time.Second)
-	_, state = C.Get("k")
-	if state {
+	Del([]byte("k"))
+	val = Get([]byte("k"))
+	if val != nil {
 		t.Error("不应该包含 key = k, value = v")
 	}
-
 }
 
 func BenchmarkSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		C.Set(i, i, 0)
+		c := []byte(strconv.Itoa(i))
+		Set(c, c)
 	}
 }
