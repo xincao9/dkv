@@ -6,4 +6,4 @@ server:
   port: :9090
   sequence: true
 logger:
-  level: debug
+  level: info

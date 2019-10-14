@@ -1,26 +1,42 @@
 package cache
 
 import (
-	"github.com/dgraph-io/ristretto"
-	"log"
+	"dkv/store/appendfile"
+	"github.com/VictoriaMetrics/fastcache"
+	"path/filepath"
 )
 
 var (
-	C *ristretto.Cache
+	C *fastcache.Cache
 )
 
+const open bool = true
+
 func init() {
-	var err error
-	C, err = ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,
-		MaxCost:     1 << 30,
-		BufferItems: 64,
-	})
-	if err != nil {
-		log.Fatalf("Fatal error cache: %v\n", err)
+	C = fastcache.New (1 << 30)
+}
+
+func Get (key []byte) []byte{
+	if open == false {
+		return nil
 	}
+	return C.Get(nil, key)
+}
+
+func Set (key []byte, val []byte) {
+	if open == false {
+		return
+	}
+	C.Set(key, val)
+}
+
+func Del (key []byte) {
+	if open == false {
+		return
+	}
+	C.Del(key)
 }
 
 func Close () {
-	C.Close()
+	C.SaveToFile(filepath.Join(appendfile.M.Dir, "cache"))
 }

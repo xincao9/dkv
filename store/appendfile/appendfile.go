@@ -38,15 +38,17 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
 		off, err := af.Size()
 		if err != nil {
+			debug.PrintStack()
 			return nil, err
 		}
 		af.offset = int32(off)
 	} else {
-		af.rt, err = mmap.Open(fn)
-	}
-	if err != nil {
-		debug.PrintStack()
-		return nil, err
+		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+		//af.rt, err = mmap.Open(fn)
+		if err != nil {
+			debug.PrintStack()
+			return nil, err
+		}
 	}
 	return af, nil
 }

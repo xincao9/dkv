@@ -16,7 +16,11 @@ import (
 	"time"
 )
 
-var DeleteFlag = "S_D"
+const DeleteFlag = "S_D"
+
+var (
+	M *meta.Meta
+)
 
 type Item struct {
 	fid    int64
@@ -33,33 +37,38 @@ type AppendFileManager struct {
 }
 
 func NewAppendFileManager(dir string) (*AppendFileManager, error) {
-	m, err := meta.NewMeta(dir)
+	var err error
+	M, err = meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
 	}
-	if m.ActiveFid == 0 {
-		m.ActiveFid = time.Now().UnixNano()
-		m.Save()
+	if M.ActiveFid == 0 {
+		M.ActiveFid = time.Now().UnixNano()
+		M.Save()
 	}
 	afmap := sync.Map{}
-	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
+	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, M.ActiveFid), Active, M.ActiveFid)
 	if err != nil {
-		logger.D.Errorf("open active fid=%d, err=%v\n", m.ActiveFid, err)
+		logger.D.Errorf("open active fid=%d, err=%v\n", M.ActiveFid, err)
 		return nil, err
+	} else {
+		logger.D.Infof("open active fid=%d, success\n", M.ActiveFid)
 	}
-	afmap.Store(m.ActiveFid, activeAF)
+	afmap.Store(M.ActiveFid, activeAF)
 	olderAF := make([]*appendFile, 0)
-	for _, fid := range m.OlderFids {
-		af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Older, fid)
+	for _, fid := range M.OlderFids {
+		af, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, fid), Older, fid)
 		if err != nil {
 			logger.D.Errorf("open older fid=%d, err=%v\n", fid, err)
 			return nil, err
+		} else {
+			logger.D.Infof("open older fid=%d, success\n", fid)
 		}
 		olderAF = append(olderAF, af)
 		afmap.Store(fid, af)
 	}
 	fm := &AppendFileManager{
-		meta:     m,
+		meta:     M,
 		activeAF: activeAF,
 		olderAF:  olderAF,
 		index:    sync.Map{},
@@ -79,7 +88,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				}
 				if s > 1024*1024*1024 {
 					fid := time.Now().UnixNano()
-					af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Active, fid)
+					af, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, fid), Active, fid)
 					if err != nil {
 						return err
 					}

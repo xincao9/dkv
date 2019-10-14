@@ -24,10 +24,8 @@ func Route(engine *gin.Engine) {
 			})
 			return
 		}
-		var val []byte
-		v, state := cache.C.Get(key)
-		if state {
-			val = v.([]byte)
+		val := cache.Get([]byte(key))
+		if val != nil {
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -41,7 +39,7 @@ func Route(engine *gin.Engine) {
 		}
 		val, err := store.D.Get([]byte(key))
 		if err == nil {
-			cache.C.Set(key, val, 0)
+			cache.Set([]byte(key), val)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -91,7 +89,7 @@ func Route(engine *gin.Engine) {
 				})
 			return
 		}
-		cache.C.Del(kv.K)
+		cache.Del([]byte(kv.K))
 		c.JSON(http.StatusOK,
 			gin.H{
 				"code":    http.StatusOK,
@@ -109,7 +107,7 @@ func Route(engine *gin.Engine) {
 		}
 		err := store.D.Delete([]byte(key))
 		if err == nil {
-			cache.C.Del(key)
+			cache.Del([]byte(key))
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,

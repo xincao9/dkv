@@ -1,8 +1,9 @@
+# github.com/VictoriaMetrics/fastcache v1.5.1
+github.com/VictoriaMetrics/fastcache
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/dgraph-io/ristretto v0.0.0-20191010170704-2ba187ef9534
-github.com/dgraph-io/ristretto
-github.com/dgraph-io/ristretto/z
+# github.com/cespare/xxhash/v2 v2.0.1-0.20190104013014-3767db7a7e18
+github.com/cespare/xxhash/v2
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3
@@ -14,6 +15,8 @@ github.com/gin-gonic/gin/internal/json
 github.com/gin-gonic/gin/render
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
+# github.com/golang/snappy v0.0.1
+github.com/golang/snappy
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/printer

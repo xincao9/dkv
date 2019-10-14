@@ -3,7 +3,8 @@ module dkv
 go 1.12
 
 require (
-	github.com/dgraph-io/ristretto v0.0.0-20191010170704-2ba187ef9534
+	github.com/VictoriaMetrics/fastcache v1.5.1
+	github.com/dgraph-io/ristretto v0.0.0-20191010170704-2ba187ef9534 // indirect
 	github.com/gin-gonic/gin v1.4.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/prometheus/client_golang v1.1.0

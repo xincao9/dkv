@@ -1,10 +1,9 @@
 wrk.method="GET"
 
-count = 1
+math.randomseed(os.time())
 
 request = function()
-	local path = string.format("/kv/%d", count)
-	count = count + 1
+	local path = string.format("/kv/%d", math.random(10000000))
 	return wrk.format(nil, path, nil, nil)
 end
 
