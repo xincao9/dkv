@@ -27,6 +27,7 @@ func main() {
 	oss.Route(engine)     // 注册OSS服务接口
 	metrics.Route(engine) // 注册普罗米修斯接口
 	pprof.Wrap(engine)    // 注册pprof接口
+	config.Route(engine)  // 配置服务接口
 	if err := engine.Run(config.D.GetString("server.port")); err != nil {
 		log.Fatalf("Fatal error gin: %v\n", err)
 	}

@@ -3,7 +3,7 @@ data:
   invalidIndex: false
 server:
   mode: debug
-  port: :9090
+  port: :8080
   sequence: true
 logger:
   level: info

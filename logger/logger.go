@@ -17,7 +17,7 @@ func init() {
 	D = logrus.New()
 	level, err := logrus.ParseLevel(config.D.GetString("logger.level"))
 	if err != nil {
-		log.Fatalf("Fatal error config file logger.level: %v\n", err)
+		log.Fatalf("Fatal error logger : %v\n", err)
 	}
 	fn := filepath.Join(config.D.GetString("data.dir"), "server.log")
 	D.Out = &lumberjack.Logger{

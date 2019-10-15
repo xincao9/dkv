@@ -2,6 +2,7 @@ package kv
 
 import (
 	"dkv/cache"
+	"dkv/compress"
 	"dkv/logger"
 	"dkv/store"
 	"dkv/store/appendfile"
@@ -26,6 +27,7 @@ func Route(engine *gin.Engine) {
 		}
 		val := cache.Get([]byte(key))
 		if val != nil {
+			val = compress.Decode(val)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -40,6 +42,7 @@ func Route(engine *gin.Engine) {
 		val, err := store.D.Get([]byte(key))
 		if err == nil {
 			cache.Set([]byte(key), val)
+			val = compress.Decode(val)
 			c.JSON(http.StatusOK,
 				gin.H{
 					"code":    http.StatusOK,
@@ -79,7 +82,8 @@ func Route(engine *gin.Engine) {
 			})
 			return
 		}
-		err := store.D.Put([]byte(kv.K), []byte(kv.V))
+		val := compress.Encode([]byte(kv.V))
+		err := store.D.Put([]byte(kv.K), val)
 		if err != nil {
 			logger.D.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
 			c.JSON(http.StatusInternalServerError,
