@@ -1,11 +1,8 @@
 package compress
 
 import (
-	"bytes"
-	"compress/zlib"
 	"dkv/config"
 	"github.com/golang/snappy"
-	"io"
 )
 
 func Encode(d []byte) []byte {
@@ -20,25 +17,6 @@ func Decode(d []byte) []byte {
 		return d
 	}
 	return snappyDecode(d)
-}
-
-func zlibEncode(d []byte) []byte {
-	var b bytes.Buffer
-	w := zlib.NewWriter(&b)
-	w.Write(d)
-	w.Close()
-	return b.Bytes()
-}
-
-func zlibDecode(d []byte) []byte {
-	r, err := zlib.NewReader(bytes.NewReader(d))
-	if err != nil {
-		return d
-	}
-	var b bytes.Buffer
-	io.Copy(&b, r)
-	r.Close()
-	return b.Bytes()
 }
 
 func snappyEncode(d []byte) []byte {
