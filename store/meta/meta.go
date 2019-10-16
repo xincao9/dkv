@@ -50,7 +50,7 @@ func (m *Meta) Save() error {
 	if err != nil {
 		return err
 	}
-	os.Mkdir(m.Dir, 0644)
+	os.Mkdir(m.Dir, 0755)
 	return ioutil.WriteFile(fn, b, 0644)
 }
 
