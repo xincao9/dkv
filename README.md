@@ -2,7 +2,7 @@
 
 **分布式键值系统**
 
-安装（目前仅支持linux环境）
+安装（目前暂不支持windows环境）
 
 ```
 git clone https://github.com/xincao9/dkv.git
@@ -39,7 +39,7 @@ curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"
 检索
 curl -X GET 'http://localhost:9090/kv/name'
 删除
-curl -X DELETE 'http://localhost:9090/kv/name'
+curl -X DELETE  'http://localhost:9090/kv/name'
 ```
 
 管理接口
@@ -50,7 +50,7 @@ curl -X GET 'http://localhost:9090/config'
 普罗米修斯指标
 curl -X GET 'http://localhost:9090/metrics'
 pprof接口
-curl -X DELETE 'http://localhost:9090/debug/pprof/'
+curl -X GET 'http://localhost:9090/debug/pprof/'
 ```
 
 Grafana dashboard资源
