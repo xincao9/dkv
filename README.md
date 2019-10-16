@@ -62,6 +62,5 @@ https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
 压力测试
 
 ```
-代码目录benchmark中文件复制到本地
 执行 benchmark/start.sh
 ```
