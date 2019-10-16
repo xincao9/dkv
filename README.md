@@ -5,6 +5,7 @@
 安装（目前暂不支持windows环境）
 
 ```
+默认认为已经安装过golang环境
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
