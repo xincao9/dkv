@@ -1,0 +1,11 @@
+data:
+  dir: /usr/local/dkv/data
+  invalidIndex: false
+  cache: true
+  compress: false
+server:
+  mode: release
+  port: :9090
+  sequence: true
+logger:
+  level: info
