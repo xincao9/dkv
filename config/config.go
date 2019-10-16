@@ -28,6 +28,7 @@ func init() {
 	D.SetDefault("data.dir", meta.DefaultDir)
 	D.SetDefault("data.invalidIndex", false)
 	D.SetDefault("data.compress", false)
+	D.SetDefault("data.cache", true)
 	D.SetDefault("server.mode", "debug")
 	D.SetDefault("server.port", ":9090")
 	D.SetDefault("server.sequence", true)

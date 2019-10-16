@@ -4,6 +4,7 @@ import (
 	"dkv/cache"
 	"dkv/compress"
 	"dkv/logger"
+	"dkv/metrics"
 	"dkv/store"
 	"dkv/store/appendfile"
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ func Route(engine *gin.Engine) {
 				"code":    http.StatusBadRequest,
 				"message": "参数错误",
 			})
+			metrics.GetCount.WithLabelValues("failure", "bad_request").Inc()
 			return
 		}
 		val := cache.Get([]byte(key))
@@ -37,6 +39,7 @@ func Route(engine *gin.Engine) {
 						V: string(val),
 					},
 				})
+			metrics.GetCount.WithLabelValues("success", "memory").Inc()
 			return
 		}
 		val, err := store.D.Get([]byte(key))
@@ -52,6 +55,7 @@ func Route(engine *gin.Engine) {
 						V: string(val),
 					},
 				})
+			metrics.GetCount.WithLabelValues("success", "disk").Inc()
 			return
 		}
 		if err == appendfile.KeyNotFound {
@@ -64,6 +68,7 @@ func Route(engine *gin.Engine) {
 						V: "",
 					},
 				})
+			metrics.GetCount.WithLabelValues("failure", "not_found").Inc()
 			return
 		}
 		logger.D.Errorf("method:get path:/kv/%s err=%s\n", key, err)
@@ -72,6 +77,7 @@ func Route(engine *gin.Engine) {
 				"code":    http.StatusInternalServerError,
 				"message": "服务端错误",
 			})
+		metrics.GetCount.WithLabelValues("failure", "server_error").Inc()
 	})
 	engine.PUT("/kv", func(c *gin.Context) {
 		var kv KV
@@ -80,6 +86,7 @@ func Route(engine *gin.Engine) {
 				"code":    http.StatusBadRequest,
 				"message": "参数错误",
 			})
+			metrics.PutCount.WithLabelValues("failure").Inc()
 			return
 		}
 		val := compress.Encode([]byte(kv.V))
@@ -91,6 +98,7 @@ func Route(engine *gin.Engine) {
 					"code":    http.StatusInternalServerError,
 					"message": "服务端错误",
 				})
+			metrics.PutCount.WithLabelValues("failure").Inc()
 			return
 		}
 		cache.Del([]byte(kv.K))
@@ -99,6 +107,7 @@ func Route(engine *gin.Engine) {
 				"code":    http.StatusOK,
 				"message": "成功",
 			})
+		metrics.PutCount.WithLabelValues("success").Inc()
 	})
 	engine.DELETE("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")

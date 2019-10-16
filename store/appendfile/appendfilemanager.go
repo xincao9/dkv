@@ -153,13 +153,11 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 	kv, err := NewKeyValue(k, v)
 	if err != nil {
-		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
 	b := Encode(kv)
 	off, err := fm.activeAF.Write(b)
 	if err != nil {
-		metrics.PutCount.WithLabelValues("failure").Inc()
 		return err
 	}
 	val, state := fm.index.Load(string(k))
@@ -179,7 +177,6 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		offset: off,
 		size:   int32(len(b)),
 	})
-	metrics.PutCount.WithLabelValues("success").Inc()
 	return nil
 }
 
@@ -188,28 +185,23 @@ var KeyNotFound = errors.New("key is not found")
 func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	v, state := fm.index.Load(string(k))
 	if state == false {
-		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, KeyNotFound
 	}
 	item := v.(*Item)
 	b := make([]byte, item.size)
 	af, ok := fm.afmap.Load(item.fid)
 	if ok == false {
-		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, fmt.Errorf("item = %v is exception", *item)
 	}
 	af.(*appendFile).Read(int64(item.offset), b)
 	kv, err := Decode(b)
 	if err != nil {
-		metrics.GetCount.WithLabelValues("failure").Inc()
 		return nil, err
 	}
 	if string(kv.Value) == DeleteFlag {
-		metrics.GetCount.WithLabelValues("failure").Inc()
 		fm.index.Delete(string(kv.Value))
 		return nil, KeyNotFound
 	}
-	metrics.GetCount.WithLabelValues("success").Inc()
 	return kv.Value, nil
 }
 
