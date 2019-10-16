@@ -2,7 +2,6 @@ package appendfile
 
 import (
 	"fmt"
-	"golang.org/x/exp/mmap"
 	"os"
 	"runtime/debug"
 	"sync"
@@ -18,7 +17,6 @@ type appendFile struct {
 	offset int32
 	role   int
 	f      *os.File
-	rt     *mmap.ReaderAt
 	fid    int64
 	sync.Mutex
 }
@@ -35,7 +33,7 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 	}
 	var err error
 	if role == Active {
-		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 		off, err := af.Size()
 		if err != nil {
 			debug.PrintStack()
@@ -43,8 +41,7 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 		}
 		af.offset = int32(off)
 	} else {
-		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
-		//af.rt, err = mmap.Open(fn)
+		af.f, err = os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
 			debug.PrintStack()
 			return nil, err
@@ -71,13 +68,7 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 func (af *appendFile) Read(offset int64, b []byte) (int, error) {
 	af.Lock()
 	defer af.Unlock()
-	if af.role == Active {
-		return af.f.ReadAt(b, offset)
-	}
-	if af.rt == nil {
-		return af.f.ReadAt(b, offset)
-	}
-	return af.rt.ReadAt(b, offset)
+	return af.f.ReadAt(b, offset)
 }
 
 func (af *appendFile) Size() (int64, error) {
@@ -93,19 +84,10 @@ func (af *appendFile) SetOlder() {
 		return
 	}
 	af.role = Older
-	//var err error
-	//af.rt, err = mmap.Open(af.fn)
-	//if err == nil {
-	//	af.f.Close()
-	//	af.f = nil
-	//}
 }
 
 func (af *appendFile) Close() {
 	if af.f != nil {
 		af.f.Close()
-	}
-	if af.rt != nil {
-		af.rt.Close()
 	}
 }

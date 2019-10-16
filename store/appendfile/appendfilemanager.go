@@ -7,7 +7,6 @@ import (
 	"dkv/store/meta"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/mmap"
 	"io"
 	"os"
 	"path/filepath"
@@ -296,7 +295,7 @@ func (fm *AppendFileManager) IndexSave() {
 		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
 	}()
 	fn := filepath.Join(fm.meta.Dir, "idx")
-	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0777)
+	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return
 	}
@@ -324,7 +323,7 @@ func (fm *AppendFileManager) IndexSave() {
 
 func (fm *AppendFileManager) IndexLoad() error {
 	fn := filepath.Join(fm.meta.Dir, "idx")
-	f, err := mmap.Open(fn)
+	f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 	if err != nil {
 		return err
 	}
