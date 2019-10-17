@@ -32,7 +32,7 @@ logger:
   level: info #log level
 ```
 
-interface
+Interface
 
 ```
 Add or modify
@@ -60,8 +60,12 @@ Grafana dashboard resources
 https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
 ```
 
-pressure test
+Pressure test
 
 ```
 Execute benchmark/start.sh
 ```
+
+Reference
+
+* [bitcask-intro](https://github.com/xincao9/dkv/blob/master/bitcask-intro.pdf)
