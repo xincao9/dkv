@@ -80,9 +80,6 @@ func (af *appendFile) Size() (int64, error) {
 }
 
 func (af *appendFile) SetOlder() {
-	if af.role == Older {
-		return
-	}
 	af.role = Older
 }
 

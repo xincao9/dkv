@@ -19,46 +19,60 @@ import (
 const DeleteFlag = "S_D"
 
 var (
-	M *meta.Meta
+	KeyNotFound = errors.New("key is not found")
 )
 
-type Item struct {
-	fid    int64
-	offset int32
-	size   int32
+type (
+	Item struct {
+		fid    int64
+		offset int32
+		size   int32
+	}
+	AppendFileManager struct {
+		meta     *meta.Meta
+		activeAF *appendFile
+		olderAF  []*appendFile
+		index    sync.Map
+		afmap    sync.Map
+		counter  sync.Map
+		rot      int64 // Recent operation time
+	}
+	i64 []int64
+)
+
+func (i i64) Len() int {
+	return len(i)
+}
+func (i i64) Swap(x, y int) {
+	i[x], i[y] = i[y], i[x]
 }
 
-type AppendFileManager struct {
-	meta     *meta.Meta
-	activeAF *appendFile
-	olderAF  []*appendFile
-	index    sync.Map
-	afmap    sync.Map
-	counter  sync.Map
+func (i i64) Less(x, y int) bool {
+	return i[x] < i[y]
 }
 
 func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	var err error
-	M, err = meta.NewMeta(dir)
+	m, err := meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
 	}
-	if M.ActiveFid == 0 {
-		M.ActiveFid = time.Now().UnixNano()
-		M.Save()
+	if m.ActiveFid == 0 {
+		m.ActiveFid = time.Now().UnixNano()
+		m.Save()
 	}
 	afmap := sync.Map{}
-	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, M.ActiveFid), Active, M.ActiveFid)
+	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
 	if err != nil {
-		logger.D.Errorf("open active fid=%d, err=%v\n", M.ActiveFid, err)
+		logger.D.Errorf("open active fid=%d, err=%v\n", m.ActiveFid, err)
 		return nil, err
 	} else {
-		logger.D.Infof("open active fid=%d, success\n", M.ActiveFid)
+		logger.D.Infof("open active fid=%d, success\n", m.ActiveFid)
 	}
-	afmap.Store(M.ActiveFid, activeAF)
+	afmap.Store(m.ActiveFid, activeAF)
 	olderAF := make([]*appendFile, 0)
-	for _, fid := range M.OlderFids {
-		af, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, fid), Older, fid)
+	for _, fid := range m.OlderFids {
+		af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Older, fid)
 		if err != nil {
 			logger.D.Errorf("open older fid=%d, err=%v\n", fid, err)
 			return nil, err
@@ -69,7 +83,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		afmap.Store(fid, af)
 	}
 	fm := &AppendFileManager{
-		meta:     M,
+		meta:     m,
 		activeAF: activeAF,
 		olderAF:  olderAF,
 		index:    sync.Map{},
@@ -87,22 +101,23 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				if err != nil {
 					return err
 				}
-				if s > 1024*1024*1024 {
-					fid := time.Now().UnixNano()
-					af, err := NewAppendFile(fmt.Sprintf("%s/%d", M.Dir, fid), Active, fid)
-					if err != nil {
-						return err
-					}
-					afmap.Store(fid, af)
-					oaf := fm.activeAF
-					fm.olderAF = append(fm.olderAF, oaf)
-					fm.activeAF = af
-					oaf.SetOlder()
-					fm.meta.ActiveFid = fid
-					fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
-					fm.meta.Save()
-					fm.IndexSave()
+				if s < 1024*1024*1024 {
+					return nil
 				}
+				fid := time.Now().UnixNano()
+				af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Active, fid)
+				if err != nil {
+					return err
+				}
+				afmap.Store(fid, af)
+				oaf := fm.activeAF
+				fm.olderAF = append(fm.olderAF, oaf)
+				fm.activeAF = af
+				oaf.SetOlder()
+				fm.meta.ActiveFid = fid
+				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
+				fm.meta.Save()
+				fm.IndexSave()
 				return nil
 			}()
 			if err != nil {
@@ -111,7 +126,10 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		}
 	}()
 	go func() {
-		for range time.Tick(time.Second) {
+		for range time.Tick(time.Minute) {
+			if time.Now().Unix() - fm.rot <= 300 {
+				continue
+			}
 			err := func() error {
 				defer func() {
 					if err := recover(); err != nil {
@@ -120,18 +138,19 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				}()
 				fm.counter.Range(func(fid, value interface{}) bool {
 					count := value.(*uint32)
-					if *count > 200 {
-						af, state := fm.afmap.Load(fid)
-						if state {
-							err = fm.Merge(af.(*appendFile))
-							if err == nil {
-								fm.Remove(af.(*appendFile))
-								fm.counter.Delete(fid)
-								logger.D.Infof("fid = %d merge success\n", fid.(int64))
-							} else {
-								logger.D.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
-							}
-						}
+					if *count <= 200 {
+						return true
+					}
+					af, state := fm.afmap.Load(fid)
+					if state == false {
+						return true
+					}
+					if err = fm.Merge(af.(*appendFile)); err != nil {
+						logger.D.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
+					} else {
+						fm.Remove(af.(*appendFile))
+						fm.counter.Delete(fid)
+						logger.D.Infof("fid = %d merge success\n", fid.(int64))
 					}
 					return true
 				})
@@ -150,6 +169,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 }
 
 func (fm *AppendFileManager) Write(k []byte, v []byte) error {
+	fm.rot = time.Now().Unix()
 	kv, err := NewKeyValue(k, v)
 	if err != nil {
 		return err
@@ -179,9 +199,8 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 	return nil
 }
 
-var KeyNotFound = errors.New("key is not found")
-
 func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
+	fm.rot = time.Now().Unix()
 	v, state := fm.index.Load(string(k))
 	if state == false {
 		return nil, KeyNotFound
@@ -202,19 +221,6 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 		return nil, KeyNotFound
 	}
 	return kv.Value, nil
-}
-
-type i64 []int64
-
-func (i i64) Len() int {
-	return len(i)
-}
-func (i i64) Swap(x, y int) {
-	i[x], i[y] = i[y], i[x]
-}
-
-func (i i64) Less(x, y int) bool {
-	return i[x] < i[y]
 }
 
 func (fm *AppendFileManager) Load() error {
