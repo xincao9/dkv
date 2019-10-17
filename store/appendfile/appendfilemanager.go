@@ -25,7 +25,7 @@ var (
 type (
 	Item struct {
 		fid    int64
-		offset int32
+		offset int64
 		size   int32
 	}
 	AppendFileManager struct {
@@ -211,7 +211,7 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	if ok == false {
 		return nil, fmt.Errorf("item = %v is exception", *item)
 	}
-	af.(*appendFile).Read(int64(item.offset), b)
+	af.(*appendFile).Read(item.offset, b)
 	kv, err := Decode(b)
 	if err != nil {
 		return nil, err
@@ -279,7 +279,7 @@ func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 		}
 		fm.index.Store(string(kv.Key), &Item{
 			fid:    af.fid,
-			offset: int32(off),
+			offset: off,
 			size:   int32(7 + s),
 		})
 		off = off + int64(7) + int64(s)
@@ -312,12 +312,12 @@ func (fm *AppendFileManager) IndexSave() {
 		k := key.(string)
 		i := value.(*Item)
 		kl := len(k)
-		b := make([]byte, kl+18)
-		byteOrder.PutUint16(b[0:2], uint16(kl+18))
+		b := make([]byte, kl+22)
+		byteOrder.PutUint16(b[0:2], uint16(kl+22))
 		byteOrder.PutUint64(b[2:10], uint64(i.fid))
-		byteOrder.PutUint32(b[10:14], uint32(i.offset))
-		byteOrder.PutUint32(b[14:18], uint32(i.size))
-		copy(b[18:kl+18], k)
+		byteOrder.PutUint64(b[10:18], uint64(i.offset))
+		byteOrder.PutUint32(b[18:22], uint32(i.size))
+		copy(b[22:kl+22], k)
 		_, err := f.Write(b)
 		if err != nil {
 			logger.D.Errorf("index save key = %s, item = %v, err = %v\n", k, i, err)
@@ -357,10 +357,10 @@ func (fm *AppendFileManager) IndexLoad() error {
 		}
 		item := &Item{
 			fid:    int64(byteOrder.Uint64(d[2:10])),
-			offset: int32(byteOrder.Uint32(d[10:14])),
-			size:   int32(byteOrder.Uint32(d[14:18])),
+			offset: int64(byteOrder.Uint64(d[10:18])),
+			size:   int32(byteOrder.Uint32(d[18:22])),
 		}
-		key := d[18:]
+		key := d[22:]
 		fm.index.Store(string(key), item)
 		off = off + int64(s)
 	}
@@ -396,7 +396,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 		v, state := fm.index.Load(string(kv.Key))
 		if state {
 			item := v.(*Item)
-			if af.fid == item.fid && int32(off) == item.offset && int32(7+s) == item.size {
+			if af.fid == item.fid && off == item.offset && int32(7+s) == item.size {
 				if string(kv.Value) != DeleteFlag {
 					err = fm.Write(kv.Key, kv.Value)
 					if err != nil {

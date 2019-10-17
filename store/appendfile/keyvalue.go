@@ -46,9 +46,9 @@ func Encode(kv *keyValue) []byte {
 	b[4] = kv.KeySize
 	byteOrder.PutUint16(b[5:7], kv.ValueSize)
 	s, e := 7, 7+int(kv.KeySize)
-	copy(b[s:e], []byte(kv.Key))
+	copy(b[s:e], kv.Key)
 	s, e = 7+int(kv.KeySize), 7+int(kv.KeySize)+int(kv.ValueSize)
-	copy(b[s:e], []byte(kv.Value))
+	copy(b[s:e], kv.Value)
 	return b
 }
 

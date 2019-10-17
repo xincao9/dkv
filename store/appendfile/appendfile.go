@@ -14,7 +14,7 @@ const (
 
 type appendFile struct {
 	fn     string
-	offset int32
+	offset int64
 	role   int
 	f      *os.File
 	fid    int64
@@ -34,12 +34,11 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 	var err error
 	if role == Active {
 		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
-		off, err := af.Size()
+		af.offset, err = af.Size()
 		if err != nil {
 			debug.PrintStack()
 			return nil, err
 		}
-		af.offset = int32(off)
 	} else {
 		af.f, err = os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
@@ -50,7 +49,7 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 	return af, nil
 }
 
-func (af *appendFile) Write(b []byte) (int32, error) {
+func (af *appendFile) Write(b []byte) (int64, error) {
 	if af.role == Older {
 		return -1, fmt.Errorf("write operations are not supported, %v\n", af)
 	}
@@ -61,7 +60,7 @@ func (af *appendFile) Write(b []byte) (int32, error) {
 	if err != nil {
 		return -1, err
 	}
-	af.offset += int32(n)
+	af.offset += int64(n)
 	return off, nil
 }
 
