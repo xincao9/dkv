@@ -1,67 +1,67 @@
 # dkv
 
-**分布式键值系统**
+**A Log-Structured Hash Table for Fast Key/Value Data**
 
-安装（目前暂不支持windows环境）
-
-```
-默认认为已经安装过golang环境
-git clone https://github.com/xincao9/dkv.git
-cd ./dkv
-sudo make install
-命令命令: dkv
-配置文件: vim /usr/local/dkv/config.yaml
-数据目录: cd /usr/local/dkv/data
-```
-
-配置文件 config.yaml
-
-放置到当前工作目录下 || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv 下
+Installation (currently does not support windows environment)
 
 ```
-data:
-  dir: /usr/local/dkv/data 数据目录
-  invalidIndex: false 是否启动时重建索引
-  cache: true 是否启用缓存
-  compress: false　是否启用压缩
-server:
-  mode: release
-  port: :9090　端口
-  sequence: true
-logger:
-  level: info　日志级别
+By default, the golang environment has been installed.
+Git clone https://github.com/xincao9/dkv.git
+Cd ./dkv
+Sudo make install
+Command command: dkv
+Configuration file: vim /usr/local/dkv/config.yaml
+Data directory: cd /usr/local/dkv/data
 ```
 
-接口
+Configuration file config.yaml
+
+Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv
 
 ```
-增加或者修改
-curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
-检索
-curl -X GET 'http://localhost:9090/kv/name'
-删除
-curl -X DELETE  'http://localhost:9090/kv/name'
+Data:
+  Dir: /usr/local/dkv/data data directory
+  invalidIndex: false Whether to rebuild the index when starting
+  Cache: true Whether to enable caching
+  Compress: false Whether to enable compression
+Server:
+  Mode: release
+  Port: :9090 port
+  Sequence: true
+Logger:
+  Level: info log level
 ```
 
-管理接口
+interface
 
 ```
-查看运行时配置
-curl -X GET 'http://localhost:9090/config'
-普罗米修斯指标
-curl -X GET 'http://localhost:9090/metrics'
-pprof接口
-curl -X GET 'http://localhost:9090/debug/pprof/'
+Add or modify
+Curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
+Search
+Curl -X GET 'http://localhost:9090/kv/name'
+delete
+Curl -X DELETE 'http://localhost:9090/kv/name'
 ```
 
-Grafana dashboard资源
+Management interface
 
 ```
-https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
+View runtime configuration
+Curl -X GET 'http://localhost:9090/config'
+Prometheus indicator
+Curl -X GET 'http://localhost:9090/metrics'
+Pprof interface
+Curl -X GET 'http://localhost:9090/debug/pprof/'
 ```
 
-压力测试
+Grafana dashboard resources
 
 ```
-执行 benchmark/start.sh
+Https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
+```
+
+pressure test
+
+```
+Execute benchmark/start.sh
 ```
