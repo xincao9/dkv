@@ -39,12 +39,12 @@ func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
 			debug.PrintStack()
 			return nil, err
 		}
-	} else {
-		af.f, err = os.OpenFile(fn, os.O_RDONLY, 0644)
-		if err != nil {
-			debug.PrintStack()
-			return nil, err
-		}
+		return af, nil
+	}
+	af.f, err = os.OpenFile(fn, os.O_RDONLY, 0644)
+	if err != nil {
+		debug.PrintStack()
+		return nil, err
 	}
 	return af, nil
 }
