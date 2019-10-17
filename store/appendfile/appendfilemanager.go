@@ -252,7 +252,7 @@ func (fm *AppendFileManager) Load() error {
 }
 
 func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
-	b := make([]byte, 7)
+	b := make([]byte, 9)
 	off := int64(0)
 	var err error
 	n := 0
@@ -263,16 +263,22 @@ func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 		} else if err != nil {
 			return err
 		}
-		if n < 7 {
-			break
+		if n < 9 {
+			return nil
 		}
 		kv, err := DecodeHeader(b)
 		if err != nil {
 			return err
 		}
 		s := int(kv.KeySize) + int(kv.ValueSize)
-		d := make([]byte, 7+s)
+		d := make([]byte, 9+s)
 		n, err = af.Read(off, d)
+		if err != nil {
+			return err
+		}
+		if n < 9+s {
+			return nil
+		}
 		kv, err = Decode(d)
 		if err != nil {
 			return err
@@ -280,9 +286,9 @@ func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 		fm.index.Store(string(kv.Key), &Item{
 			fid:    af.fid,
 			offset: off,
-			size:   int32(7 + s),
+			size:   int32(9 + s),
 		})
-		off = off + int64(7) + int64(s)
+		off = off + int64(9) + int64(s)
 	}
 	return nil
 }
@@ -368,7 +374,7 @@ func (fm *AppendFileManager) IndexLoad() error {
 }
 
 func (fm *AppendFileManager) Merge(af *appendFile) error {
-	b := make([]byte, 7)
+	b := make([]byte, 9)
 	off := int64(0)
 	var err error
 	n := 0
@@ -379,7 +385,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 		} else if err != nil {
 			return err
 		}
-		if n < 7 {
+		if n < 9 {
 			break
 		}
 		kv, err := DecodeHeader(b)
@@ -387,8 +393,14 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 			return err
 		}
 		s := int(kv.KeySize) + int(kv.ValueSize)
-		d := make([]byte, 7+s)
+		d := make([]byte, 9+s)
 		n, err = af.Read(off, d)
+		if err != nil {
+			return err
+		}
+		if n < 9+s {
+			return nil
+		}
 		kv, err = Decode(d)
 		if err != nil {
 			return err
@@ -396,7 +408,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 		v, state := fm.index.Load(string(kv.Key))
 		if state {
 			item := v.(*Item)
-			if af.fid == item.fid && off == item.offset && int32(7+s) == item.size {
+			if af.fid == item.fid && off == item.offset && int32(9+s) == item.size {
 				if string(kv.Value) != DeleteFlag {
 					err = fm.Write(kv.Key, kv.Value)
 					if err != nil {
@@ -405,7 +417,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 				}
 			}
 		}
-		off = off + int64(7) + int64(s)
+		off = off + int64(9) + int64(s)
 	}
 	return nil
 }

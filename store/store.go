@@ -1,9 +1,12 @@
 package store
 
 import (
+	"crypto/md5"
 	"dkv/config"
 	"dkv/store/appendfile"
+	"encoding/hex"
 	"log"
+	"math"
 )
 
 var (
@@ -81,6 +84,10 @@ func NewStore(dir string) (*Store, error) {
 }
 
 func (s *Store) Get(k []byte) ([]byte, error) {
+	if len(k) >= math.MaxUint8 {
+		h := md5.New()
+		k = []byte(hex.EncodeToString(h.Sum(k)))
+	}
 	if sequence {
 		r := &ROps{
 			kv:   &KV{K: k},
@@ -94,6 +101,10 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 }
 
 func (s *Store) Put(k, v []byte) error {
+	if len(k) >= math.MaxUint8 {
+		h := md5.New()
+		k = []byte(hex.EncodeToString(h.Sum(k)))
+	}
 	if sequence {
 		w := &WOps{
 			kv:   &KV{K: k, V: v},
