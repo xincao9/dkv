@@ -20,16 +20,16 @@ Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local
 
 ```
 data:
-  dir: /usr/local/dkv/data data directory
-  invalidIndex: false Whether to rebuild the index when starting
-  cache: true Whether to enable caching
-  compress: false Whether to enable compression
+  dir: /usr/local/dkv/data #data directory
+  invalidIndex: false #Whether to rebuild the index when starting
+  cache: true #Whether to enable caching
+  compress: false #Whether to enable compression
 server:
   mode: release
-  port: :9090 port
+  port: :9090 #port
   sequence: true
 logger:
-  Level: info log level
+  level: info #log level
 ```
 
 interface
