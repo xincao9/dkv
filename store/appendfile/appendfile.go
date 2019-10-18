@@ -60,6 +60,10 @@ func (af *appendFile) Write(b []byte) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	if n != len(b) {
+		af.f.Seek(off, 0)
+		return -1, fmt.Errorf("write %d bytes, actually write %d bytes", len(b), n)
+	}
 	af.offset += int64(n)
 	return off, nil
 }
@@ -80,10 +84,16 @@ func (af *appendFile) Size() (int64, error) {
 
 func (af *appendFile) SetOlder() {
 	af.role = Older
+	af.Sync()
 }
 
 func (af *appendFile) Close() {
 	if af.f != nil {
+		af.Sync()
 		af.f.Close()
 	}
+}
+
+func (af *appendFile) Sync() {
+	af.f.Sync()
 }

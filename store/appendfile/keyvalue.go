@@ -14,6 +14,7 @@ var (
 const (
 	MaxValueSize = 1 << 26 // 64M
 )
+
 type keyValue struct {
 	Crc32     uint32
 	KeySize   uint8
@@ -57,7 +58,7 @@ func Encode(kv *keyValue) []byte {
 
 func Decode(b []byte) (*keyValue, error) {
 	if len(b) < 9 {
-		return nil, errors.New("packet exception")
+		return nil, errors.New("packet header exception")
 	}
 	kv := &keyValue{
 		Crc32:     byteOrder.Uint32(b[:4]),
@@ -66,7 +67,7 @@ func Decode(b []byte) (*keyValue, error) {
 	}
 	s := int(kv.KeySize) + int(kv.ValueSize)
 	if len(b) < s+9 {
-		return nil, errors.New("packet exception")
+		return nil, errors.New("packet size exception")
 	}
 	s, e := 9, 9+int(kv.KeySize)
 	kv.Key = b[s:e]
@@ -74,14 +75,14 @@ func Decode(b []byte) (*keyValue, error) {
 	kv.Value = b[s:e]
 	crc := crc32Checksum(*kv)
 	if crc != kv.Crc32 {
-		return nil, errors.New("packet exception")
+		return nil, errors.New("packet crc32 exception")
 	}
 	return kv, nil
 }
 
 func DecodeHeader(b []byte) (*keyValue, error) {
 	if len(b) < 9 {
-		return nil, errors.New("packet exception")
+		return nil, errors.New("packet header exception")
 	}
 	kv := &keyValue{
 		Crc32:     byteOrder.Uint32(b[:4]),

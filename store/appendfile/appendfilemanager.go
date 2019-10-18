@@ -97,6 +97,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 						logger.D.Errorf("定时任务异常 %v\n", err)
 					}
 				}()
+				fm.activeAF.Sync()
 				s, err := fm.activeAF.Size()
 				if err != nil {
 					return err
@@ -127,7 +128,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	}()
 	go func() {
 		for range time.Tick(time.Minute) {
-			if time.Now().Unix() - fm.rot <= 300 {
+			if time.Now().Unix()-fm.rot <= 300 {
 				continue
 			}
 			err := func() error {
@@ -177,7 +178,7 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 	b := Encode(kv)
 	off, err := fm.activeAF.Write(b)
 	if err != nil {
-		return err
+		return fmt.Errorf("write(%s, %s) %v", k, v, err)
 	}
 	val, state := fm.index.Load(string(k))
 	if state {
@@ -209,12 +210,12 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	b := make([]byte, item.size)
 	af, ok := fm.afmap.Load(item.fid)
 	if ok == false {
-		return nil, fmt.Errorf("item = %v is exception", *item)
+		return nil, fmt.Errorf("read(%v) fid = %d not found", *item, item.fid)
 	}
 	af.(*appendFile).Read(item.offset, b)
 	kv, err := Decode(b)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read(%v) %v", *item, err)
 	}
 	if string(kv.Value) == DeleteFlag {
 		fm.index.Delete(string(kv.Value))
