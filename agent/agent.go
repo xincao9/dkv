@@ -1,16 +1,20 @@
 package agent
 
 import (
-	"dkv/logger"
+	"crypto/tls"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 var (
 	client = &http.Client{
 		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			MaxIdleConns:       10,
 			IdleConnTimeout:    30 * time.Second,
 			DisableCompression: true,
@@ -21,11 +25,15 @@ var (
 
 func Route(engine *gin.Engine) {
 	engine.Any("/*c", func(c *gin.Context) {
-		request, err := http.NewRequest(c.Request.Method, c.Request.RequestURI, c.Request.Body)
+		uri := c.Request.RequestURI
+		if !strings.HasPrefix(uri, "http") {
+			uri = fmt.Sprintf("http://%s", uri)
+		}
+		request, err := http.NewRequest(c.Request.Method, uri, c.Request.Body)
 		request.Header = c.Request.Header
 		response, err := client.Do(request)
 		if err != nil {
-			logger.D.Errorf("method = %s, uri = %s, body = %s", c.Request.Method, c.Request.RequestURI, c.Request.Body, err)
+			log.Printf("method = %s, uri = %s, body = %s, err = %v", c.Request.Method, uri, c.Request.Body, err)
 			c.Writer.WriteHeader(http.StatusBadGateway)
 			return
 		}
@@ -41,3 +49,12 @@ func Route(engine *gin.Engine) {
 		io.Copy(c.Writer, response.Body)
 	})
 }
+
+
+ func Bootstrap () {
+ 	engine := gin.Default()
+ 	Route(engine)
+	 if err := engine.Run(":12306"); err != nil {
+		 log.Fatalf("Fatal error gin: %v\n", err)
+	 }
+ }
