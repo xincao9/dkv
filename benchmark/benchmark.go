@@ -10,6 +10,8 @@ import (
 
 const maxRequestCount = 1000000
 
+var doc = make([]byte, 1024)
+
 func main () {
 	client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6380",
@@ -21,30 +23,30 @@ func main () {
 		log.Fatalln(err)
 	}
 	startTime := time.Now()
-	val := ""
+	key := ""
 	for i := 0; i < maxRequestCount; i++ {
 		val := strconv.Itoa(i)
-		err = client.Set(val, val, 0).Err()
+		err = client.Set(val, string(doc), 0).Err()
 		if err != nil {
-			log.Printf("redis set(%s, %s): %v\n", val, val, err)
+			log.Printf("redis set(%s, %s): %v\n", val, doc, err)
 		}
 	}
 	log.Printf("redis set TPS: %.2f\n", maxRequestCount/time.Since(startTime).Seconds())
 	startTime = time.Now()
 	for i := 0; i < maxRequestCount; i++ {
-		val = strconv.Itoa(i)
-		_, err := client.Get(val).Result()
+		key = strconv.Itoa(i)
+		_, err := client.Get(key).Result()
 		if err != nil {
-			log.Printf("redis get(%s): %v\n", val, err)
+			log.Printf("redis get(%s): %v\n", key, err)
 		}
 	}
 	log.Printf("redis sort get TPS: %.2f\n", maxRequestCount/time.Since(startTime).Seconds())
 	startTime = time.Now()
 	for i := 0; i < maxRequestCount; i++ {
-		val = strconv.Itoa(rand.Intn(maxRequestCount))
-		_, err := client.Get(val).Result()
+		key = strconv.Itoa(rand.Intn(maxRequestCount))
+		_, err := client.Get(key).Result()
 		if err != nil {
-			log.Printf("redis get(%s): %v\n", val, err)
+			log.Printf("redis get(%s): %v\n", key, err)
 		}
 	}
 	log.Printf("redis random get TPS: %.2f\n", maxRequestCount/time.Since(startTime).Seconds())
