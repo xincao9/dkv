@@ -14,6 +14,7 @@ docker:build
 
 install:build
 	mkdir -p /usr/local/dkv/data
+	chmod 777 /usr/local/dkv/data
 	mv dkv /usr/local/dkv/
 	cp config-prod.yaml /usr/local/dkv/config.yaml
 	ln -s /usr/local/dkv/dkv /usr/local/bin/dkv

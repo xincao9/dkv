@@ -8,6 +8,6 @@ server:
   port: :9090
   sequence: true
   redcon:
-    port: 6380
+    port: :6380
 logger:
   level: info

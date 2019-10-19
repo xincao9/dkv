@@ -1,9 +1,13 @@
 data:
   dir: /tmp/dkv
   invalidIndex: false
+  cache: true
+  compress: false
 server:
   mode: debug
   port: :9090
   sequence: true
+  redcon:
+    port: :6380
 logger:
   level: info
