@@ -7,5 +7,7 @@ server:
   mode: release
   port: :9090
   sequence: true
+  redcon:
+    port: 6380
 logger:
   level: info

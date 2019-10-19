@@ -28,6 +28,8 @@ server:
   mode: release
   port: :9090 #port
   sequence: true
+  redcon:
+    port: 6380 #redis port
 logger:
   level: info #log level
 ```
