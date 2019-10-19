@@ -6,8 +6,9 @@
 
 **Installation** (currently does not support windows environment)
 
+> By default, the golang environment has been installed.
+
 ```
-By default, the golang environment has been installed.
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
@@ -18,7 +19,7 @@ Data directory: cd /usr/local/dkv/data
 
 **Configuration file** config.yaml
 
-Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv
+> Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv
 
 ```
 data:
@@ -55,7 +56,7 @@ curl -X DELETE 'http://localhost:9090/kv/name'
 * DEL key
 * PING
 
-go get github.com/go-redis/redis
+> go get github.com/go-redis/redis
 
 ```
 client := redis.NewClient(&redis.Options{
@@ -76,7 +77,7 @@ log.Println(val)
 
 **GO SDK**
 
-go get github.com/xincao9/dkv/client
+> go get github.com/xincao9/dkv/client
 
 ```
 c, err := New("localhost:9090", time.Second)
@@ -106,9 +107,7 @@ curl -X GET 'http://localhost:9090/debug/pprof'
 
 **Grafana dashboard resources**
 
-```
-https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
-```
+> https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
 
 **Pressure test**
 
