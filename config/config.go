@@ -32,6 +32,7 @@ func init() {
 	D.SetDefault("data.cache", true)
 	D.SetDefault("server.mode", "debug")
 	D.SetDefault("server.port", ":9090")
+	D.SetDefault("server.redcon.port", ":6380")
 	D.SetDefault("server.sequence", true)
 	D.SetDefault("logger.level", "debug")
 	err := D.ReadInConfig()

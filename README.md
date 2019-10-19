@@ -32,7 +32,7 @@ logger:
   level: info #log level
 ```
 
-Interface
+HTTP interface
 
 ```
 Add or modify
@@ -43,6 +43,14 @@ delete
 curl -X DELETE 'http://localhost:9090/kv/name'
 ```
 
+Redis command
+
+
+* SET key value
+* GET key
+* DEL key
+* PING
+
 Management interface
 
 ```
@@ -51,7 +59,7 @@ curl -X GET 'http://localhost:9090/config'
 Prometheus indicator
 curl -X GET 'http://localhost:9090/metrics'
 Pprof interface
-curl -X GET 'http://localhost:9090/debug/pprof/'
+curl -X GET 'http://localhost:9090/debug/pprof'
 ```
 
 Grafana dashboard resources

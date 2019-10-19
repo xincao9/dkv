@@ -14,7 +14,7 @@ import (
 var (
 	client = &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 			MaxIdleConns:       10,
 			IdleConnTimeout:    30 * time.Second,
 			DisableCompression: true,
@@ -50,11 +50,10 @@ func Route(engine *gin.Engine) {
 	})
 }
 
-
- func Bootstrap () {
- 	engine := gin.Default()
- 	Route(engine)
-	 if err := engine.Run(":12306"); err != nil {
-		 log.Fatalf("Fatal error gin: %v\n", err)
-	 }
- }
+func ListenAndServe() {
+	engine := gin.Default()
+	Route(engine)
+	if err := engine.Run(":12306"); err != nil {
+		log.Fatalf("Fatal error gin: %v\n", err)
+	}
+}
