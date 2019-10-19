@@ -2,7 +2,7 @@
 
 **A Log-Structured Hash Table for Fast Key/Value Data**
 
-Installation (currently does not support windows environment)
+**Installation** (currently does not support windows environment)
 
 ```
 By default, the golang environment has been installed.
@@ -14,7 +14,7 @@ Configuration file: vim /usr/local/dkv/config.yaml
 Data directory: cd /usr/local/dkv/data
 ```
 
-Configuration file config.yaml
+**Configuration file** config.yaml
 
 Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv
 
@@ -34,7 +34,7 @@ logger:
   level: info #log level
 ```
 
-HTTP interface
+**HTTP interface**
 
 ```
 Add or modify
@@ -45,7 +45,7 @@ delete
 curl -X DELETE 'http://localhost:9090/kv/name'
 ```
 
-Redis command
+**Redis command**
 
 
 * SET key value
@@ -53,7 +53,49 @@ Redis command
 * DEL key
 * PING
 
-Management interface
+go get github.com/go-redis/redis
+
+```
+client := redis.NewClient(&redis.Options{
+    Addr:     "localhost:6380",
+    Password: "", // no password set
+    DB:       0,  // use default DB
+})
+err := client.Set("key", "value", 0).Err()
+if err != nil {
+    panic(err)
+}
+val, err := client.Get("key").Result()
+if err != nil {
+    panic(err)
+}
+fmt.Println("key", val)
+```
+
+**GO SDK**
+
+go get github.com/xincao9/dkv/client
+
+```
+c, err := New("localhost:9090", time.Second)
+if err != nil {
+    log.Fatalln(err)
+}
+r, err := c.Put("k", "v")
+if err == nil {
+    log.Println(r)
+}
+r, err = c.Delete("k")
+if err == nil {
+    log.Println(r)
+}
+r, err = c.Get("v")
+if err == nil {
+    log.Println(r)
+}
+```
+
+**Management interface**
 
 ```
 View runtime configuration
@@ -64,18 +106,18 @@ Pprof interface
 curl -X GET 'http://localhost:9090/debug/pprof'
 ```
 
-Grafana dashboard resources
+**Grafana dashboard resources**
 
 ```
 https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
 ```
 
-Pressure test
+**Pressure test**
 
 ```
 Execute benchmark/start.sh
 ```
 
-Reference
+**Reference**
 
 * [bitcask-intro](https://github.com/xincao9/dkv/blob/master/bitcask-intro.pdf)
