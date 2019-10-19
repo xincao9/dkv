@@ -63,15 +63,15 @@ client := redis.NewClient(&redis.Options{
     Password: "", // no password set
     DB:       0,  // use default DB
 })
-err := client.Set("key", "value", 0).Err()
+err := client.Set("name", "xincao9", 0).Err()
 if err != nil {
-    panic(err)
+    log.Println(err)
 }
-val, err := client.Get("key").Result()
+val, err := client.Get("name").Result()
 if err != nil {
-    panic(err)
+    log.Println(err)
 }
-fmt.Println("key", val)
+log.Println(val)
 ```
 
 **GO SDK**
@@ -83,15 +83,11 @@ c, err := New("localhost:9090", time.Second)
 if err != nil {
     log.Fatalln(err)
 }
-r, err := c.Put("k", "v")
+r, err := c.Put("name", "xincao9")
 if err == nil {
     log.Println(r)
 }
-r, err = c.Delete("k")
-if err == nil {
-    log.Println(r)
-}
-r, err = c.Get("v")
+r, err = c.Get("name")
 if err == nil {
     log.Println(r)
 }
