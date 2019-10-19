@@ -2,6 +2,7 @@
 
 **A Log-Structured Hash Table for Fast Key/Value Data**
 
+[logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 **Installation** (currently does not support windows environment)
 
 ```
