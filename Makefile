@@ -6,7 +6,7 @@ test:
 	go test -v ./... -cover
 	rm $(HOME)/.dkv/config.yaml
 
-build:test
+build:
 	go build -tags=jsoniter -o dkv main.go
 
 docker:build
