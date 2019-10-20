@@ -16,7 +16,11 @@ import (
 	"time"
 )
 
-const DeleteFlag = "S_D"
+const (
+	DeleteFlag = "S_D"
+	idle       = 0
+	running    = 1
+)
 
 var (
 	KeyNotFound = errors.New("key is not found")
@@ -36,6 +40,7 @@ type (
 		afmap    sync.Map
 		counter  sync.Map
 		rot      int64 // Recent operation time
+		sistate  int32 // save index state
 	}
 	i64 []int64
 )
@@ -94,7 +99,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 			err := func() error {
 				defer func() {
 					if err := recover(); err != nil {
-						logger.D.Errorf("定时任务异常 %v\n", err)
+						logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
 					}
 				}()
 				fm.activeAF.Sync()
@@ -118,11 +123,13 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				fm.meta.ActiveFid = fid
 				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
 				fm.meta.Save()
-				fm.IndexSave()
+				if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
+					go func() { fm.IndexSave() }()
+				}
 				return nil
 			}()
 			if err != nil {
-				logger.D.Errorf("定时任务异常 %v\n", err)
+				logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
 			}
 		}
 	}()
@@ -134,7 +141,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 			err := func() error {
 				defer func() {
 					if err := recover(); err != nil {
-						logger.D.Errorf("定时任务异常 %v\n", err)
+						logger.D.Errorf("文件merge定时任务异常 %v\n", err)
 					}
 				}()
 				fm.counter.Range(func(fid, value interface{}) bool {
@@ -158,7 +165,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				return nil
 			}()
 			if err != nil {
-				logger.D.Errorf("定时任务异常 %v\n", err)
+				logger.D.Errorf("文件merge定时任务异常 %v\n", err)
 			}
 		}
 	}()
@@ -186,7 +193,6 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		c, state := fm.counter.Load(item.fid)
 		if state {
 			atomic.AddUint32(c.(*uint32), 1)
-			fm.counter.Store(item.fid, c)
 		} else {
 			count := uint32(1)
 			fm.counter.Store(item.fid, &count)
@@ -212,10 +218,16 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	if ok == false {
 		return nil, fmt.Errorf("read(%v) fid = %d not found", *item, item.fid)
 	}
-	af.(*appendFile).Read(item.offset, b)
+	n, err := af.(*appendFile).Read(item.offset, b)
+	if err != nil {
+		return nil, fmt.Errorf("read(%v) read %v", *item, err)
+	}
+	if n != int(item.size) {
+		return nil, fmt.Errorf("read(%v) read 期望读取 %d 字节，实际读取 %d 字节", *item, item.size, n)
+	}
 	kv, err := Decode(b)
 	if err != nil {
-		return nil, fmt.Errorf("read(%v) %v", *item, err)
+		return nil, fmt.Errorf("read(%v) decode %v", *item, err)
 	}
 	if string(kv.Value) == DeleteFlag {
 		fm.index.Delete(string(kv.Value))
@@ -303,6 +315,9 @@ func (fm *AppendFileManager) Close() {
 }
 
 func (fm *AppendFileManager) IndexSave() {
+	defer func() {
+		atomic.CompareAndSwapInt32(&fm.sistate, running, idle)
+	}()
 	startTime := time.Now()
 	defer func() {
 		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
