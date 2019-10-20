@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -67,7 +68,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		m.Save()
 	}
 	afmap := sync.Map{}
-	activeAF, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, m.ActiveFid), Active, m.ActiveFid)
+	activeAF, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(m.ActiveFid, 10)), Active, m.ActiveFid)
 	if err != nil {
 		logger.D.Errorf("open active fid=%d, err=%v\n", m.ActiveFid, err)
 		return nil, err
@@ -77,7 +78,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	afmap.Store(m.ActiveFid, activeAF)
 	olderAF := make([]*appendFile, 0)
 	for _, fid := range m.OlderFids {
-		af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Older, fid)
+		af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Older, fid)
 		if err != nil {
 			logger.D.Errorf("open older fid=%d, err=%v\n", fid, err)
 			return nil, err
@@ -111,7 +112,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 					return nil
 				}
 				fid := time.Now().UnixNano()
-				af, err := NewAppendFile(fmt.Sprintf("%s/%d", m.Dir, fid), Active, fid)
+				af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Active, fid)
 				if err != nil {
 					return err
 				}
@@ -235,6 +236,24 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 		return nil, KeyNotFound
 	}
 	return kv.Value, nil
+}
+
+func (fm *AppendFileManager) GetAppendFiles() []string {
+	var fns []string
+	if fm.meta.OlderFids != nil {
+		sort.Sort(i64(fm.meta.OlderFids))
+		for _, fid := range fm.meta.OlderFids {
+			if fid != 0 {
+				fn := filepath.Join(fm.meta.Dir, strconv.FormatInt(fid, 10))
+				fns = append(fns, fn)
+			}
+		}
+	}
+	if fm.meta.ActiveFid != 0 {
+		fn := filepath.Join(fm.meta.Dir, strconv.FormatInt(fm.meta.ActiveFid, 10))
+		fns = append(fns, fn)
+	}
+	return fns
 }
 
 func (fm *AppendFileManager) Load() error {

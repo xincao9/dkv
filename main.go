@@ -12,7 +12,6 @@ import (
 	"dkv/store"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
@@ -59,6 +58,6 @@ func main() {
 	redcon.ListenAndServe()
 	logger.D.Infof("Listening and serving HTTP on : %s", config.D.GetString("server.port"))
 	if err := engine.Run(config.D.GetString("server.port")); err != nil {
-		log.Fatalf("Fatal error gin: %v\n", err)
+		logger.D.Fatalf("Fatal error gin: %v\n", err)
 	}
 }

@@ -3,9 +3,9 @@ package store
 import (
 	"crypto/md5"
 	"dkv/config"
+	"dkv/logger"
 	"dkv/store/appendfile"
 	"encoding/hex"
-	"log"
 	"math"
 )
 
@@ -18,7 +18,7 @@ func init() {
 	var err error
 	D, err = NewStore(config.D.GetString("data.dir"))
 	if err != nil {
-		log.Fatalf("Fatal error store: %v\n", err)
+		logger.D.Fatalf("Fatal error store: %v\n", err)
 	}
 }
 
@@ -128,4 +128,8 @@ func (s *Store) Delete(k []byte) error {
 func (s *Store) Close() {
 	s.shutdown <- true
 	s.fm.Close()
+}
+
+func (s *Store) GetAppendFiles() []string {
+	return s.fm.GetAppendFiles()
 }
