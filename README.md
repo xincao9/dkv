@@ -1,6 +1,8 @@
 # dkv
 
-**A Log-Structured Hash Table for Fast Key/Value Data**
+**A Log-Structured Hash Table for Fast Key/Value Data** 
+
+[![CodeFactor](https://www.codefactor.io/repository/github/xincao9/dkv/badge)](https://www.codefactor.io/repository/github/xincao9/dkv)
 
 ![logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 
