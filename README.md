@@ -11,7 +11,7 @@
 * ease of backup and restore
 * a relatively simple, understandable (and thus supportable) code structure and data format • predictable behavior under heavy access load or large volume
 
-**Installation** (currently does not support windows environment)
+**Install**
 
 > By default, the golang environment has been installed.
 
@@ -19,14 +19,14 @@
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
-Execute: dkv
+Execute: dkv -d=true
 Configuration file: vim /usr/local/dkv/config.yaml
 Data directory: cd /usr/local/dkv/data
 ```
 
-**Configuration file** config.yaml
+**Configuration file**
 
-> Placed in the current working directory || /etc/dkv/ || $HOME/.dkv || /usr/local/dkv
+> config.yaml Placed in the current working directory or /etc/dkv/ or $HOME/.dkv or /usr/local/dkv
 
 ```
 data:
@@ -114,7 +114,7 @@ curl -X GET 'http://localhost:9090/debug/pprof'
 
 **Grafana dashboard resources**
 
-> https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json
+> [prometheus.json](https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json)
 
 **Pressure test**
 
