@@ -103,6 +103,8 @@ if err == nil {
 
 **Management interface**
 
+> KV store
+
 ```
 View runtime configuration
 curl -X GET 'http://localhost:9090/config'
@@ -110,6 +112,15 @@ Prometheus indicator
 curl -X GET 'http://localhost:9090/metrics'
 Pprof interface
 curl -X GET 'http://localhost:9090/debug/pprof'
+```
+
+> OSS (Object Storage Service)
+
+```
+Upload file, file max size 64M
+curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data' -i
+Fetch file
+curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
 ```
 
 **Grafana dashboard resources**

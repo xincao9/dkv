@@ -183,7 +183,8 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		return err
 	}
 	b := Encode(kv)
-	off, err := fm.activeAF.Write(b)
+	af := fm.activeAF
+	off, err := af.Write(b)
 	if err != nil {
 		return fmt.Errorf("write(%s, %s) %v", k, v, err)
 	}
@@ -199,7 +200,7 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		}
 	}
 	fm.index.Store(string(k), &Item{
-		fid:    fm.activeAF.fid,
+		fid:    af.fid,
 		offset: off,
 		size:   int32(len(b)),
 	})
