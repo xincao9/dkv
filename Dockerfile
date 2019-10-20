@@ -1,6 +1,6 @@
-FROM centos
+FROM debian:jessie
 
-MAINTAINER xincao9@gmail.com
+LABEL maintainer="xincao9@gmail.com"
 
 ADD dkv /dkv
 

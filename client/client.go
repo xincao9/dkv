@@ -17,9 +17,9 @@ type KV struct {
 }
 
 type Result struct {
-	Code    int    `json:code`
-	Message string `json:message`
-	KV      KV     `json:kv`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	KV      KV     `json:"kv"`
 }
 
 var (

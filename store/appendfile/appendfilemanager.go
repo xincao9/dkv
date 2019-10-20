@@ -304,7 +304,6 @@ func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 		})
 		off = off + int64(9) + int64(s)
 	}
-	return nil
 }
 
 func (fm *AppendFileManager) Close() {
