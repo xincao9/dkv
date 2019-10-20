@@ -46,6 +46,8 @@ logger:
 
 **HTTP interface**
 
+> KV store
+
 ```
 Add or modify
 curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
@@ -53,6 +55,15 @@ Search
 curl -X GET 'http://localhost:9090/kv/name'
 delete
 curl -X DELETE 'http://localhost:9090/kv/name'
+```
+
+> OSS (Object Storage Service)
+
+```
+Upload file, file max size 64M
+curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data' -i
+Fetch file
+curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
 ```
 
 **Redis command**
@@ -103,8 +114,6 @@ if err == nil {
 
 **Management interface**
 
-> KV store
-
 ```
 View runtime configuration
 curl -X GET 'http://localhost:9090/config'
@@ -112,15 +121,6 @@ Prometheus indicator
 curl -X GET 'http://localhost:9090/metrics'
 Pprof interface
 curl -X GET 'http://localhost:9090/debug/pprof'
-```
-
-> OSS (Object Storage Service)
-
-```
-Upload file, file max size 64M
-curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data' -i
-Fetch file
-curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
 ```
 
 **Grafana dashboard resources**
