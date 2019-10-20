@@ -61,7 +61,7 @@ curl -X DELETE 'http://localhost:9090/kv/name'
 
 ```
 Upload file, file max size 64M
-curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data' -i
+curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data'
 Fetch file
 curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
 ```
