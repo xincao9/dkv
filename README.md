@@ -100,7 +100,7 @@ log.Println(val)
 > go get github.com/xincao9/dkv/client
 
 ```
-c, err := New("localhost:9090", time.Second)
+c, err := client.New("localhost:9090", time.Second)
 if err != nil {
     log.Fatalln(err)
 }
