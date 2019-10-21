@@ -70,64 +70,39 @@ func run() {
 				}
 				conn.WriteInt(1)
 			case "sync":
-				if len(cmd.Args) > 2 {
-					conn.WriteError("ERR wrong number of arguments for '" + string(cmd.Args[0]) + "' command")
+				var salveInfo SlaveInfo
+				val, err := store.D.Get([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())))
+				if err == nil {
+					err = json.Unmarshal(val, &salveInfo)
+					if err != nil {
+						conn.WriteNull()
+						return
+					}
+				} else if err != appendfile.KeyNotFound {
+					conn.WriteNull()
 					return
 				}
-				var fid int64
-				var off int64
-				var err error
-				var salveInfo SlaveInfo
-				if len(cmd.Args) == 2 {
-					fid, err = strconv.ParseInt(string(cmd.Args[1]), 10, 64)
-					if err != nil {
-						conn.WriteNull()
-						return
-					}
-					off, err = strconv.ParseInt(string(cmd.Args[2]), 10, 64)
-					if err != nil {
-						conn.WriteNull()
-						return
-					}
-				} else {
-					val, err := store.D.Get([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())))
-					if err == nil {
-						err = json.Unmarshal(val, &salveInfo)
-						if err != nil {
-							conn.WriteNull()
-							return
-						}
-					} else if err != appendfile.KeyNotFound {
-						conn.WriteNull()
-						return
-					}
-				}
-				if len(cmd.Args) == 0 {
-					fid = salveInfo.Fid
-					off = salveInfo.off
-				} else if len(cmd.Args) == 1 {
-					fid, err = strconv.ParseInt(string(cmd.Args[1]), 10, 64)
-					if err != nil {
-						conn.WriteNull()
-						return
-					}
-					off = salveInfo.off
-				}
+				fid := salveInfo.Fid
+				off := salveInfo.off
 				fns := store.D.GetAppendFiles()
 				start := false
 				for _, fn := range fns {
 					i := strings.LastIndex(fn, "/")
 					if i == -1 || len(fn) <= i+1 {
 						logger.D.Errorf("redcon fn = %s\n", fn)
-						break
+						conn.WriteNull()
+						return
 					}
 					ofid, err := strconv.ParseInt(fn[i+1:], 10, 64)
 					if err != nil {
 						logger.D.Errorf("redcon fn = %s\n", fn)
-						break
+						conn.WriteNull()
+						return
 					}
-					if fid == 0 || ofid >= fid {
-						start = true
+					if start == false {
+						if fid == 0 || ofid >= fid {
+							start = true
+						}
 					}
 					if start {
 						f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
@@ -137,10 +112,18 @@ func run() {
 						}
 						b := make([]byte, 1024)
 						for {
-							f.Seek(off, 0)
-							n, err := f.Read(b)
+							n, err := f.ReadAt(b, off)
 							if err == io.EOF {
 								if n > 0 {
+									off = off + int64(n)
+									val, _ = json.Marshal(&SlaveInfo{
+										Fid: ofid,
+										off: off,
+									})
+									err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())), val)
+									if err != nil {
+										logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
+									}
 									conn.WriteRaw(b[:n])
 								}
 								break
@@ -149,6 +132,15 @@ func run() {
 								break
 							}
 							if n > 0 {
+								off = off + int64(n)
+								val, _ = json.Marshal(&SlaveInfo{
+									Fid: ofid,
+									off: off,
+								})
+								err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())), val)
+								if err != nil {
+									logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
+								}
 								conn.WriteRaw(b[:n])
 							}
 						}
