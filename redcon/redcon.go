@@ -4,23 +4,8 @@ import (
 	"dkv/config"
 	"dkv/logger"
 	"dkv/store"
-	"dkv/store/appendfile"
-	"encoding/json"
-	"fmt"
 	"github.com/tidwall/redcon"
-	"io"
-	"os"
-	"strconv"
 	"strings"
-)
-
-type SlaveInfo struct {
-	Fid int64 `fid:"fid"`
-	off int64 `off:"off"`
-}
-
-const (
-	slaveInfoSuffix = "%s.slaveInfoSuffix"
 )
 
 func run() {
@@ -69,87 +54,6 @@ func run() {
 					return
 				}
 				conn.WriteInt(1)
-			case "sync":
-				var salveInfo SlaveInfo
-				val, err := store.D.Get([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())))
-				if err == nil {
-					err = json.Unmarshal(val, &salveInfo)
-					if err != nil {
-						conn.WriteNull()
-						return
-					}
-				} else if err != appendfile.KeyNotFound {
-					conn.WriteNull()
-					return
-				}
-				fid := salveInfo.Fid
-				off := salveInfo.off
-				fns := store.D.GetAppendFiles()
-				start := false
-				for _, fn := range fns {
-					i := strings.LastIndex(fn, "/")
-					if i == -1 || len(fn) <= i+1 {
-						logger.D.Errorf("redcon fn = %s\n", fn)
-						conn.WriteNull()
-						return
-					}
-					ofid, err := strconv.ParseInt(fn[i+1:], 10, 64)
-					if err != nil {
-						logger.D.Errorf("redcon fn = %s\n", fn)
-						conn.WriteNull()
-						return
-					}
-					if start == false {
-						if fid == 0 || ofid >= fid {
-							start = true
-						}
-					}
-					if start {
-						f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
-						if err != nil {
-							logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
-							continue
-						}
-						b := make([]byte, 1024)
-						for {
-							n, err := f.ReadAt(b, off)
-							if err == io.EOF {
-								if n > 0 {
-									off = off + int64(n)
-									val, _ = json.Marshal(&SlaveInfo{
-										Fid: ofid,
-										off: off,
-									})
-									err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())), val)
-									if err != nil {
-										logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
-									}
-									conn.WriteRaw(b[:n])
-								}
-								break
-							} else if err != nil {
-								logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
-								break
-							}
-							if n > 0 {
-								off = off + int64(n)
-								val, _ = json.Marshal(&SlaveInfo{
-									Fid: ofid,
-									off: off,
-								})
-								err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())), val)
-								if err != nil {
-									logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
-								}
-								conn.WriteRaw(b[:n])
-							}
-						}
-					}
-				}
-				if err != nil {
-					conn.WriteNull()
-					return
-				}
 			}
 		},
 		func(conn redcon.Conn) bool {
