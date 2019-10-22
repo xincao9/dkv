@@ -5,11 +5,11 @@ data:
   compress: false
 server:
   mode: release
-  port: :9091
+  port: :9090
   sequence: true
   redcon:
-    port: :6381
+    port: :6380
 logger:
   level: info
 ms:
-  role: 2
+  role: 0
