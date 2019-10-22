@@ -19,13 +19,10 @@ import (
 	"os/exec"
 )
 
-var godaemon = flag.Bool("d", false, "run app as a daemon with -d=true")
-
 func init() {
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	if *godaemon {
+	d := flag.Bool("d", false, "run app as a daemon with -d=true")
+	flag.Parse()
+	if *d {
 		args := os.Args[1:]
 		i := 0
 		for ; i < len(args); i++ {
