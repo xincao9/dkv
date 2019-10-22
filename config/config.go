@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -18,6 +19,14 @@ func init() {
 	flag.Parse()
 	// 配置文件设置
 	D = viper.New()
+	if strings.HasSuffix(*c, "yaml") {
+		i := strings.LastIndex(*c, "yaml")
+		*c = string([]byte(*c)[:i-1])
+	}
+	if strings.HasSuffix(*c, "yml") {
+		i := strings.LastIndex(*c, "yml")
+		*c = string([]byte(*c)[:i-1])
+	}
 	if *c == "" {
 		D.SetConfigName("config-prod")
 	} else {
