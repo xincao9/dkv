@@ -1,15 +1,17 @@
 data:
-  dir: /usr/local/dkv/data
+  dir: /usr/local/dkv/data/m
   invalidIndex: false
   cache: true
   compress: false
 server:
   mode: release
-  port: :9090
+  port: :8090
   sequence: true
   redcon:
-    port: :6380
+    port: :5380
 logger:
   level: info
 ms:
-  role: 0
+  role: 1
+  m:
+    port: :7380

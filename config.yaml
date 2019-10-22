@@ -12,4 +12,4 @@ server:
 logger:
   level: info
 ms:
-  role: 1
+  role: 0

@@ -2,11 +2,11 @@ package config
 
 import (
 	"dkv/store/meta"
+	"flag"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
-	"os"
 )
 
 var (
@@ -14,18 +14,17 @@ var (
 )
 
 func init() {
+	c := flag.String("conf", "", "configure file")
+	flag.Parse()
 	// 配置文件设置
 	D = viper.New()
-	if os.Getenv("ENV") == "prod" {
+	if *c == "" {
 		D.SetConfigName("config-prod")
 	} else {
-		D.SetConfigName("config")
+		D.SetConfigName(*c)
 	}
 	D.SetConfigType("yaml")
-	D.AddConfigPath("/etc/dkv/")
-	D.AddConfigPath("$HOME/.dkv")
 	D.AddConfigPath(".")
-	D.AddConfigPath("/usr/local/dkv/")
 	D.SetDefault("data.dir", meta.DefaultDir)
 	D.SetDefault("data.invalidIndex", false)
 	D.SetDefault("data.compress", false)
