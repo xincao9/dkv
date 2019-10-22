@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	Master          = 1
-	Slave           = 2
+	master          = 1
+	slave           = 2
 	slaveInfoSuffix = "%s.slaveInfoSuffix"
 )
 
-type SlaveInfo struct {
+type slaveInfo struct {
 	Fid int64 `json:"fid"`
 	Off int64 `json:"off"`
 }
@@ -48,16 +48,17 @@ func init () {
 
 func New() (*Synchronous, error) {
 	role := config.D.GetInt("ms.role")
-	if role != Master && role != Slave {
+	if role != master && role != slave {
 		return nil, nil
 	}
 	s := &Synchronous{}
 	s.role = role
-	if role == Master {
+	if role == master {
 		ln, err := net.Listen("tcp", config.D.GetString("ms.m.port"))
 		if err != nil {
 			return nil, err
 		}
+		logger.D.Infof("Synchronous new listen port: %s\n", config.D.GetString("ms.m.port"))
 		go func() {
 			for {
 				conn, err := ln.Accept()
@@ -67,6 +68,7 @@ func New() (*Synchronous, error) {
 				}
 				go func(c net.Conn) {
 					addr := c.RemoteAddr().String()
+					logger.D.Infof("Synchronous new handler %s\n", addr)
 					s.conns.Store(addr, conn)
 					state := true
 					for state {
@@ -84,6 +86,7 @@ func New() (*Synchronous, error) {
 			return nil, err
 		}
 		go func(c net.Conn) {
+			logger.D.Infof("Synchronous new conn addr: %s\n", config.D.GetString("ms.s.addr"))
 			scanner := bufio.NewScanner(c)
 			for scanner.Scan() {
 				fn := filepath.Join(config.D.GetString("server.data"), strconv.FormatInt(time.Now().UnixNano(), 64))
@@ -98,6 +101,7 @@ func New() (*Synchronous, error) {
 					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
 				}
 			}
+			logger.D.Infof("Synchronous new close conn addr: %s\n", config.D.GetString("ms.s.addr"))
 			c.Close()
 		}(conn)
 	}
@@ -111,10 +115,10 @@ func (s *Synchronous) handler(addr string) {
 		return
 	}
 	conn := c.(net.Conn)
-	var salveInfo SlaveInfo
+	var sI slaveInfo
 	val, err := store.D.Get([]byte(fmt.Sprintf(slaveInfoSuffix, addr)))
 	if err == nil {
-		err = json.Unmarshal(val, &salveInfo)
+		err = json.Unmarshal(val, &sI)
 		if err != nil {
 			logger.D.Errorf("Synchronous handler %v\n", err)
 			s.close(addr)
@@ -125,8 +129,8 @@ func (s *Synchronous) handler(addr string) {
 		s.close(addr)
 		return
 	}
-	fid := salveInfo.Fid
-	off := salveInfo.Off
+	fid := sI.Fid
+	off := sI.Off
 	fns := store.D.GetAppendFiles()
 	start := false
 	for _, fn := range fns {
@@ -159,7 +163,7 @@ func (s *Synchronous) handler(addr string) {
 				if err == io.EOF {
 					if n > 0 {
 						off = off + int64(n)
-						val, _ = json.Marshal(&SlaveInfo{
+						val, _ = json.Marshal(&slaveInfo{
 							Fid: ofid,
 							Off: off,
 						})
@@ -169,14 +173,16 @@ func (s *Synchronous) handler(addr string) {
 						}
 						conn.Write(b[:n])
 					}
+					f.Close()
 					break
 				} else if err != nil {
 					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+					f.Close()
 					break
 				}
 				if n > 0 {
 					off = off + int64(n)
-					val, _ = json.Marshal(&SlaveInfo{
+					val, _ = json.Marshal(&slaveInfo{
 						Fid: ofid,
 						Off: off,
 					})

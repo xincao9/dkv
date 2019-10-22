@@ -11,4 +11,5 @@ server:
     port: :6380
 logger:
   level: info
-role: 1
+ms:
+  role: 1
