@@ -66,8 +66,8 @@ func New() (*Synchronous, error) {
 					continue
 				}
 				go func(c net.Conn) {
-					ss := strings.Split(c.RemoteAddr().String(), ":")
-					host := strings.Join(ss[:len(ss)-1], "")
+					i := strings.LastIndex(c.RemoteAddr().String(), ":")
+					host := string([]byte(c.RemoteAddr().String())[:i])
 					logger.D.Infof("Synchronous new handler host: %s\n", host)
 					s.conns.Store(host, conn)
 					state := true
@@ -159,11 +159,21 @@ func (s *Synchronous) handler(host string) {
 		if sI.Fid != 0 && ofid < sI.Fid {
 			continue
 		}
+		if ofid > sI.Fid {
+			sI.Off = 0
+		}
 		f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
 			logger.D.Errorf("Synchronous handler openfile fn: %s, err: %v\n", fn, err)
 			continue
 		}
+		fi, err := f.Stat()
+		if err == nil {
+			if ofid == sI.Fid && fi.Size() <= sI.Off {
+				continue
+			}
+		}
+		sI.Fid = ofid
 		b := make([]byte, 1024)
 		for {
 			n, err := f.ReadAt(b, sI.Off)
@@ -176,17 +186,13 @@ func (s *Synchronous) handler(host string) {
 				}
 			}
 			if err == io.EOF {
-				if n > 0 {
-					saveSlaveInfo(host, sI)
-				}
+				saveSlaveInfo(host, sI)
 				conn.Write(EOF)
 				logger.D.Infof("Synchronous handler write fn = %s finish\n", fn)
 				f.Close()
 				break
 			} else if err != nil {
-				if n > 0 {
-					saveSlaveInfo(host, sI)
-				}
+				saveSlaveInfo(host, sI)
 				conn.Write(EOF)
 				logger.D.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
 				f.Close()
