@@ -38,7 +38,7 @@ var (
 	D *Synchronous
 )
 
-func init () {
+func init() {
 	var err error
 	D, err = New()
 	if err != nil {
@@ -87,15 +87,16 @@ func New() (*Synchronous, error) {
 		}
 		go func(c net.Conn) {
 			logger.D.Infof("Synchronous new conn addr: %s\n", config.D.GetString("ms.s.addr"))
+			fn := filepath.Join(config.D.GetString("data.dir"), strconv.FormatInt(time.Now().UnixNano(), 10))
+			f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+				c.Close()
+				return
+			}
 			scanner := bufio.NewScanner(c)
 			for scanner.Scan() {
-				fn := filepath.Join(config.D.GetString("server.data"), strconv.FormatInt(time.Now().UnixNano(), 64))
-				f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
-				if err != nil {
-					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
-					c.Close()
-					return
-				}
+
 				_, err = f.Write(scanner.Bytes())
 				if err != nil {
 					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
@@ -129,10 +130,7 @@ func (s *Synchronous) handler(addr string) {
 		s.close(addr)
 		return
 	}
-	fid := sI.Fid
-	off := sI.Off
 	fns := store.D.GetAppendFiles()
-	start := false
 	for _, fn := range fns {
 		i := strings.LastIndex(fn, "/")
 		if i == -1 || len(fn) <= i+1 {
@@ -146,52 +144,40 @@ func (s *Synchronous) handler(addr string) {
 			s.close(addr)
 			return
 		}
-		if start == false {
-			if fid == 0 || ofid >= fid {
-				start = true
-			}
+		if sI.Fid != 0 && ofid < sI.Fid {
+			continue
 		}
-		if start {
-			f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
-			if err != nil {
-				logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
-				continue
-			}
-			b := make([]byte, 1024)
-			for {
-				n, err := f.ReadAt(b, off)
-				if err == io.EOF {
-					if n > 0 {
-						off = off + int64(n)
-						val, _ = json.Marshal(&slaveInfo{
-							Fid: ofid,
-							Off: off,
-						})
-						err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, addr)), val)
-						if err != nil {
-							logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
-						}
-						conn.Write(b[:n])
-					}
-					f.Close()
-					break
-				} else if err != nil {
+		f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
+		if err != nil {
+			logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+			continue
+		}
+		b := make([]byte, 1024)
+		sI.Fid = ofid
+		sI.Off = 0
+		for {
+			n, err := f.ReadAt(b, sI.Off)
+			if n > 0 {
+				sI.Off = sI.Off + int64(n)
+				val, _ = json.Marshal(&sI)
+				err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, addr)), val)
+				if err != nil {
 					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
-					f.Close()
-					break
 				}
-				if n > 0 {
-					off = off + int64(n)
-					val, _ = json.Marshal(&slaveInfo{
-						Fid: ofid,
-						Off: off,
-					})
-					err = store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, conn.RemoteAddr())), val)
-					if err != nil {
-						logger.D.Errorf("redcon fn = %s, err = %v\n", fn, err)
-					}
-					conn.Write(b[:n])
+				_, err = conn.Write(b[:n])
+				if err != nil {
+					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+					s.close(addr)
 				}
+			}
+			if err == io.EOF {
+				logger.D.Infof("Synchronous handler fn = %s finish\n", fn)
+				f.Close()
+				break
+			} else if err != nil {
+				logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+				f.Close()
+				break
 			}
 		}
 	}
