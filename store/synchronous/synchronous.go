@@ -11,16 +11,14 @@ import (
 	"io"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
-	master          = 1
-	slave           = 2
+	Master          = 1
+	Slave           = 2
 	slaveInfoSuffix = "%s.slaveInfoSuffix"
 )
 
@@ -35,7 +33,8 @@ type Synchronous struct {
 }
 
 var (
-	D *Synchronous
+	D   *Synchronous
+	EOF = []byte("CYZEOF")
 )
 
 func init() {
@@ -48,12 +47,12 @@ func init() {
 
 func New() (*Synchronous, error) {
 	role := config.D.GetInt("ms.role")
-	if role != master && role != slave {
+	if role != Master && role != Slave {
 		return nil, nil
 	}
 	s := &Synchronous{}
 	s.role = role
-	if role == master {
+	if role == Master {
 		ln, err := net.Listen("tcp", config.D.GetString("ms.m.port"))
 		if err != nil {
 			return nil, err
@@ -87,19 +86,11 @@ func New() (*Synchronous, error) {
 		}
 		go func(c net.Conn) {
 			logger.D.Infof("Synchronous new conn addr: %s\n", config.D.GetString("ms.s.addr"))
-			fn := filepath.Join(config.D.GetString("data.dir"), strconv.FormatInt(time.Now().UnixNano(), 10))
-			f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
-			if err != nil {
-				logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
-				c.Close()
-				return
-			}
 			scanner := bufio.NewScanner(c)
 			for scanner.Scan() {
-
-				_, err = f.Write(scanner.Bytes())
+				err = store.D.WriteRaw(scanner.Bytes())
 				if err != nil {
-					logger.D.Errorf("Synchronous handler fn = %s, err = %v\n", fn, err)
+					logger.D.Errorf("Synchronous new: %v\n", err)
 				}
 			}
 			logger.D.Infof("Synchronous new close conn addr: %s\n", config.D.GetString("ms.s.addr"))
@@ -171,6 +162,7 @@ func (s *Synchronous) handler(addr string) {
 				}
 			}
 			if err == io.EOF {
+				conn.Write(EOF)
 				logger.D.Infof("Synchronous handler fn = %s finish\n", fn)
 				f.Close()
 				break
@@ -189,15 +181,4 @@ func (s *Synchronous) close(addr string) {
 		val.(net.Conn).Close()
 		s.conns.Delete(addr)
 	}
-}
-
-// 主节点广播
-func (s *Synchronous) Broadcast(b []byte) {
-	s.conns.Range(func(addr, value interface{}) bool {
-		_, err := value.(net.Conn).Write(b)
-		if err != nil {
-			logger.D.Errorf("Synchronous Broadcast addr = %s, err = %v\n", addr, err)
-		}
-		return true
-	})
 }

@@ -125,6 +125,10 @@ func (s *Store) Delete(k []byte) error {
 	return s.Put(k, []byte(appendfile.DeleteFlag))
 }
 
+func (s *Store) WriteRaw (d []byte) error {
+	return s.fm.WriteRaw(d)
+}
+
 func (s *Store) Close() {
 	s.shutdown <- true
 	s.fm.Close()

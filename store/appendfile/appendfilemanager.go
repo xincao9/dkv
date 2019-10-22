@@ -1,6 +1,7 @@
 package appendfile
 
 import (
+	"bytes"
 	"dkv/config"
 	"dkv/logger"
 	"dkv/metrics"
@@ -25,6 +26,7 @@ const (
 
 var (
 	KeyNotFound = errors.New("key is not found")
+	m           *meta.Meta
 )
 
 type (
@@ -59,7 +61,7 @@ func (i i64) Less(x, y int) bool {
 
 func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	var err error
-	m, err := meta.NewMeta(dir)
+	m, err = meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -95,45 +97,47 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		index:    sync.Map{},
 		afmap:    afmap,
 	}
-	go func() {
-		for range time.Tick(time.Second) {
-			err := func() error {
-				defer func() {
-					if err := recover(); err != nil {
-						logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
+	if config.D.GetInt("ms.role") != 2 {
+		go func() {
+			for range time.Tick(time.Second) {
+				err := func() error {
+					defer func() {
+						if err := recover(); err != nil {
+							logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
+						}
+					}()
+					fm.activeAF.Sync()
+					s, err := fm.activeAF.Size()
+					if err != nil {
+						return err
 					}
-				}()
-				fm.activeAF.Sync()
-				s, err := fm.activeAF.Size()
-				if err != nil {
-					return err
-				}
-				if s < 1024*1024*1024 {
+					if s < 1024*1024*1024 {
+						return nil
+					}
+					fid := time.Now().UnixNano()
+					af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Active, fid)
+					if err != nil {
+						return err
+					}
+					afmap.Store(fid, af)
+					oaf := fm.activeAF
+					fm.olderAF = append(fm.olderAF, oaf)
+					fm.activeAF = af
+					oaf.SetOlder()
+					fm.meta.ActiveFid = fid
+					fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
+					fm.meta.Save()
+					if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
+						go func() { fm.IndexSave() }()
+					}
 					return nil
-				}
-				fid := time.Now().UnixNano()
-				af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Active, fid)
+				}()
 				if err != nil {
-					return err
+					logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
 				}
-				afmap.Store(fid, af)
-				oaf := fm.activeAF
-				fm.olderAF = append(fm.olderAF, oaf)
-				fm.activeAF = af
-				oaf.SetOlder()
-				fm.meta.ActiveFid = fid
-				fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
-				fm.meta.Save()
-				if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
-					go func() { fm.IndexSave() }()
-				}
-				return nil
-			}()
-			if err != nil {
-				logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
 			}
-		}
-	}()
+		}()
+	}
 	go func() {
 		for range time.Tick(time.Minute) {
 			if time.Now().Unix()-fm.rot <= 300 {
@@ -205,6 +209,47 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 		offset: off,
 		size:   int32(len(b)),
 	})
+	return nil
+}
+
+func (fm *AppendFileManager) WriteRaw(d []byte) error {
+	i := bytes.Index(d, []byte("CYZEOF"))
+	if i == -1 {
+		_, err := fm.activeAF.Write(d)
+		if err != nil {
+			return fmt.Errorf("write raw: %v", err)
+		}
+		return nil
+	}
+	if i != 0 {
+		_, err := fm.activeAF.Write(d[:i])
+		if err != nil {
+			return fmt.Errorf("write raw: %v", err)
+		}
+	}
+	fid := time.Now().UnixNano()
+	af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Active, fid)
+	if err != nil {
+		return err
+	}
+	fm.afmap.Store(fid, af)
+	oaf := fm.activeAF
+	fm.olderAF = append(fm.olderAF, oaf)
+	fm.activeAF = af
+	oaf.SetOlder()
+	fm.meta.ActiveFid = fid
+	fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
+	fm.meta.Save()
+	fm.loadAppendFile(oaf)
+	if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
+		go func() { fm.IndexSave() }()
+	}
+	if len(d) > i+6 {
+		_, err := fm.activeAF.Write(d[i+6:])
+		if err != nil {
+			return fmt.Errorf("write raw: %v", err)
+		}
+	}
 	return nil
 }
 
