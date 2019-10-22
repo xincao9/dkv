@@ -22,10 +22,10 @@ func init() {
 		D.SetConfigName("config")
 	}
 	D.SetConfigType("yaml")
-	D.AddConfigPath("/etc/dkv/")
-	D.AddConfigPath("$HOME/.dkv")
 	D.AddConfigPath(".")
-	D.AddConfigPath("/usr/local/dkv/")
+	//D.AddConfigPath("/etc/dkv/")
+	//D.AddConfigPath("$HOME/.dkv")
+	//D.AddConfigPath("/usr/local/dkv/")
 	D.SetDefault("data.dir", meta.DefaultDir)
 	D.SetDefault("data.invalidIndex", false)
 	D.SetDefault("data.compress", false)

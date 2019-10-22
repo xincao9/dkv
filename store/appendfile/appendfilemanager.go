@@ -22,11 +22,14 @@ const (
 	DeleteFlag = "S_D"
 	idle       = 0
 	running    = 1
+	Master     = 1
+	Slave      = 2
 )
 
 var (
 	KeyNotFound = errors.New("key is not found")
 	m           *meta.Meta
+	EOF         = []byte("CYZEOF")
 )
 
 type (
@@ -97,7 +100,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		index:    sync.Map{},
 		afmap:    afmap,
 	}
-	if config.D.GetInt("ms.role") != 2 {
+	if config.D.GetInt("ms.role") != Slave {
 		go func() {
 			for range time.Tick(time.Second) {
 				err := func() error {
@@ -212,19 +215,20 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 	return nil
 }
 
+// 用于数据文件同步
 func (fm *AppendFileManager) WriteRaw(d []byte) error {
-	i := bytes.Index(d, []byte("CYZEOF"))
+	i := bytes.Index(d, EOF)
 	if i == -1 {
 		_, err := fm.activeAF.Write(d)
 		if err != nil {
-			return fmt.Errorf("write raw: %v", err)
+			return err
 		}
 		return nil
 	}
 	if i != 0 {
 		_, err := fm.activeAF.Write(d[:i])
 		if err != nil {
-			return fmt.Errorf("write raw: %v", err)
+			return err
 		}
 	}
 	fid := time.Now().UnixNano()
@@ -240,14 +244,17 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 	fm.meta.ActiveFid = fid
 	fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
 	fm.meta.Save()
-	fm.loadAppendFile(oaf)
+	err = fm.loadAppendFile(oaf)
+	if err != nil {
+		return err
+	}
 	if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
 		go func() { fm.IndexSave() }()
 	}
 	if len(d) > i+6 {
 		_, err := fm.activeAF.Write(d[i+6:])
 		if err != nil {
-			return fmt.Errorf("write raw: %v", err)
+			return err
 		}
 	}
 	return nil

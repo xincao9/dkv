@@ -7,7 +7,6 @@ import (
 	"dkv/metrics"
 	"dkv/store"
 	"dkv/store/appendfile"
-	_ "dkv/store/synchronous"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

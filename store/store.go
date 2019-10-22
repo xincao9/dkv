@@ -125,6 +125,7 @@ func (s *Store) Delete(k []byte) error {
 	return s.Put(k, []byte(appendfile.DeleteFlag))
 }
 
+// 用于数据文件同步
 func (s *Store) WriteRaw (d []byte) error {
 	return s.fm.WriteRaw(d)
 }

@@ -10,13 +10,13 @@ import (
 	"dkv/pprof"
 	"dkv/redcon"
 	"dkv/store"
+	_ "dkv/store/synchronous"
 	"flag"
 	"fmt"
-	"os"
-	"os/exec"
-
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"os"
+	"os/exec"
 )
 
 var godaemon = flag.Bool("d", false, "run app as a daemon with -d=true")
