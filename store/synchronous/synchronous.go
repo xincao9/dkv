@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,7 +63,7 @@ func New() (*Synchronous, error) {
 					for state {
 						_, state = s.conns.Load(host)
 						if state {
-							time.Sleep(time.Second * 10)
+							time.Sleep(time.Second)
 							s.handler(host)
 						}
 					}
@@ -110,25 +111,17 @@ func (s *Synchronous) handler(host string) {
 			Off: 0,
 		}
 	}
-	fns := store.D.FM.GetAppendFiles()
-	for _, fn := range fns {
-		i := strings.LastIndex(fn, "/")
-		if i == -1 || len(fn) <= i+1 {
-			logger.D.Errorf("Synchronous handler fn: %s\n", fn)
-			s.close(host)
-			return
-		}
-		ofid, err := strconv.ParseInt(fn[i+1:], 10, 64)
-		if err != nil {
-			logger.D.Errorf("Synchronous handler fn: %s\n", fn)
-			s.close(host)
-			return
-		}
-		if sI.Fid != 0 && ofid < sI.Fid {
+	fids := store.D.FM.GetFids()
+	for _, fid := range fids {
+		fn := filepath.Join(store.D.FM.Meta.Dir, strconv.FormatInt(fid, 10))
+		if fid < sI.Fid {
 			continue
 		}
-		if ofid > sI.Fid {
+		if fid > sI.Fid {
 			sI.Off = 0
+			if sI.Fid != 0 {
+				conn.Write(meta.EOF)
+			}
 		}
 		f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
@@ -137,12 +130,12 @@ func (s *Synchronous) handler(host string) {
 		}
 		fi, err := f.Stat()
 		if err == nil {
-			if ofid == sI.Fid && fi.Size() <= sI.Off {
-                f.Close()
+			if fid == sI.Fid && fi.Size() <= sI.Off {
+				f.Close()
 				continue
 			}
 		}
-		sI.Fid = ofid
+		sI.Fid = fid
 		b := make([]byte, 1024)
 		for {
 			n, err := f.ReadAt(b, sI.Off)
@@ -156,13 +149,11 @@ func (s *Synchronous) handler(host string) {
 			}
 			if err == io.EOF {
 				store.D.FM.Meta.SaveSlaveInfo(host, sI)
-				conn.Write(meta.EOF)
 				logger.D.Infof("Synchronous handler write fn = %s finish\n", fn)
 				f.Close()
 				break
 			} else if err != nil {
 				store.D.FM.Meta.SaveSlaveInfo(host, sI)
-				conn.Write(meta.EOF)
 				logger.D.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
 				f.Close()
 				break
