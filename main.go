@@ -8,7 +8,7 @@ import (
 	"dkv/metrics"
 	"dkv/oss"
 	"dkv/pprof"
-	"dkv/redcon"
+	"dkv/redis"
 	"dkv/store"
 	_ "dkv/store/synchronous"
 	"flag"
@@ -52,9 +52,10 @@ func main() {
 	metrics.Route(engine) // 注册普罗米修斯接口
 	pprof.Wrap(engine)    // 注册pprof接口
 	config.Route(engine)  // 配置服务接口
-	redcon.ListenAndServe()
-	logger.D.Infof("Listening and serving HTTP on : %s", config.D.GetString("server.port"))
-	if err := engine.Run(config.D.GetString("server.port")); err != nil {
+	redis.ListenAndServe()
+	addr := fmt.Sprintf(":%s", config.D.GetString("server.port"))
+	logger.D.Infof("Listening and serving HTTP on : %s", addr)
+	if err := engine.Run(addr); err != nil {
 		logger.D.Fatalf("Fatal error gin: %v\n", err)
 	}
 }

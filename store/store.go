@@ -39,7 +39,7 @@ type WOps struct {
 }
 
 type Store struct {
-	fm       *appendfile.AppendFileManager
+	FM       *appendfile.AppendFileManager
 	rop      chan *ROps
 	wop      chan *WOps
 	shutdown chan bool
@@ -80,7 +80,7 @@ func NewStore(dir string) (*Store, error) {
 			}
 		}()
 	}
-	return &Store{fm: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
+	return &Store{FM: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
 }
 
 func (s *Store) Get(k []byte) ([]byte, error) {
@@ -97,7 +97,7 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 		<-r.resp
 		return r.kv.V, r.kv.Err
 	}
-	return s.fm.Read(k)
+	return s.FM.Read(k)
 }
 
 func (s *Store) Put(k, v []byte) error {
@@ -114,7 +114,7 @@ func (s *Store) Put(k, v []byte) error {
 		<-w.resp
 		return w.kv.Err
 	}
-	return s.fm.Write(k, v)
+	return s.FM.Write(k, v)
 }
 
 func (s *Store) Delete(k []byte) error {
@@ -127,14 +127,10 @@ func (s *Store) Delete(k []byte) error {
 
 // 用于数据文件同步
 func (s *Store) WriteRaw(d []byte) error {
-	return s.fm.WriteRaw(d)
+	return s.FM.WriteRaw(d)
 }
 
 func (s *Store) Close() {
 	s.shutdown <- true
-	s.fm.Close()
-}
-
-func (s *Store) GetAppendFiles() []string {
-	return s.fm.GetAppendFiles()
+	s.FM.Close()
 }

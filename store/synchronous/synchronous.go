@@ -4,8 +4,7 @@ import (
 	"dkv/config"
 	"dkv/logger"
 	"dkv/store"
-	"dkv/store/appendfile"
-	"encoding/json"
+	"dkv/store/meta"
 	"fmt"
 	"io"
 	"net"
@@ -16,25 +15,13 @@ import (
 	"time"
 )
 
-const (
-	Master          = 1
-	Slave           = 2
-	slaveInfoSuffix = "%s.slaveInfoSuffix"
-)
-
-type slaveInfo struct {
-	Fid int64 `json:"fid"`
-	Off int64 `json:"off"`
-}
-
 type Synchronous struct {
 	role  int
 	conns sync.Map
 }
 
 var (
-	D   *Synchronous
-	EOF = []byte("CYZEOF")
+	D *Synchronous
 )
 
 func init() {
@@ -47,17 +34,18 @@ func init() {
 
 func New() (*Synchronous, error) {
 	role := config.D.GetInt("ms.role")
-	if role != Master && role != Slave {
+	if role != meta.Master && role != meta.Slave {
 		return nil, nil
 	}
 	s := &Synchronous{}
 	s.role = role
-	if role == Master {
-		ln, err := net.Listen("tcp", config.D.GetString("ms.m.port"))
+	if role == meta.Master {
+		addr := fmt.Sprintf(":%s", config.D.GetString("ms.m.port"))
+		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return nil, err
 		}
-		logger.D.Infof("Synchronous new listen port: %s\n", config.D.GetString("ms.m.port"))
+		logger.D.Infof("Synchronous new listen port: %s\n", addr)
 		go func() {
 			for {
 				conn, err := ln.Accept()
@@ -83,12 +71,13 @@ func New() (*Synchronous, error) {
 		}()
 		return s, nil
 	}
-	conn, err := net.Dial("tcp", config.D.GetString("ms.s.addr"))
+	addr := config.D.GetString("ms.s.addr")
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	go func(c net.Conn) {
-		logger.D.Infof("Synchronous new connection addr: %s\n", config.D.GetString("ms.s.addr"))
+		logger.D.Infof("Synchronous new connection addr: %s\n", addr)
 		b := make([]byte, 1024)
 		for {
 			n, err := c.Read(b)
@@ -105,44 +94,23 @@ func New() (*Synchronous, error) {
 				logger.D.Errorf("Synchronous new store write : %v\n", err)
 			}
 		}
-		logger.D.Infof("Synchronous new close connection addr: %s\n", config.D.GetString("ms.s.addr"))
+		logger.D.Infof("Synchronous new close connection addr: %s\n", addr)
 		c.Close()
 	}(conn)
 	return s, nil
 }
 
-func saveSlaveInfo (host string, sI *slaveInfo) {
-	val, _ := json.Marshal(&sI)
-	err := store.D.Put([]byte(fmt.Sprintf(slaveInfoSuffix, host)), val)
-	if err != nil {
-		logger.D.Errorf("Synchronous saveSlaveInfo store put host: %s, slaveInfo = %v\n", host, sI)
-	}
-}
-
-func getSalveInfoByHost (host string) (*slaveInfo, error) {
-	var sI slaveInfo
-	val, err := store.D.Get([]byte(fmt.Sprintf(slaveInfoSuffix, host)))
-	if err != nil {
-		logger.D.Errorf("Synchronous getSalveInfoByHost store get: %v\n", err)
-		return &sI, err
-	}
-	err = json.Unmarshal(val, &sI)
-	if err != nil {
-		logger.D.Errorf("Synchronous getSalveInfoByHost store get unmarshal: %v\n", err)
-		return &sI, err
-	}
-	return &sI, nil
-}
-
 func (s *Synchronous) handler(host string) {
 	c, _ := s.conns.Load(host)
 	conn := c.(net.Conn)
-	sI, err := getSalveInfoByHost(host)
-	if err != nil && err != appendfile.KeyNotFound {
-		s.close(host)
-		return
+	sI, state := store.D.FM.Meta.GetSalveInfoByHost(host)
+	if state == false {
+		sI = &meta.SlaveInfo{
+			Fid: 0,
+			Off: 0,
+		}
 	}
-	fns := store.D.GetAppendFiles()
+	fns := store.D.FM.GetAppendFiles()
 	for _, fn := range fns {
 		i := strings.LastIndex(fn, "/")
 		if i == -1 || len(fn) <= i+1 {
@@ -170,6 +138,7 @@ func (s *Synchronous) handler(host string) {
 		fi, err := f.Stat()
 		if err == nil {
 			if ofid == sI.Fid && fi.Size() <= sI.Off {
+                f.Close()
 				continue
 			}
 		}
@@ -186,14 +155,14 @@ func (s *Synchronous) handler(host string) {
 				}
 			}
 			if err == io.EOF {
-				saveSlaveInfo(host, sI)
-				conn.Write(EOF)
+				store.D.FM.Meta.SaveSlaveInfo(host, sI)
+				conn.Write(meta.EOF)
 				logger.D.Infof("Synchronous handler write fn = %s finish\n", fn)
 				f.Close()
 				break
 			} else if err != nil {
-				saveSlaveInfo(host, sI)
-				conn.Write(EOF)
+				store.D.FM.Meta.SaveSlaveInfo(host, sI)
+				conn.Write(meta.EOF)
 				logger.D.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
 				f.Close()
 				break

@@ -1,16 +1,17 @@
-package redcon
+package redis
 
 import (
 	"dkv/config"
 	"dkv/logger"
 	"dkv/store"
+	"fmt"
 	"github.com/tidwall/redcon"
 	"strings"
 )
 
 func run() {
-	addr := config.D.GetString("server.redcon.port")
-	logger.D.Infof("Redconn listening and serving HTTP on : %s", addr)
+	addr := fmt.Sprintf(":%s", config.D.GetString("server.redis.port"))
+	logger.D.Infof("Redis listening and serving HTTP on : %s", addr)
 	err := redcon.ListenAndServe(addr,
 		func(conn redcon.Conn, cmd redcon.Command) {
 			switch strings.ToLower(string(cmd.Args[0])) {
@@ -67,7 +68,7 @@ func run() {
 		},
 	)
 	if err != nil {
-		logger.D.Fatalf("fatal err redisconn : %v\n", err)
+		logger.D.Fatalf("fatal err redis: %v\n", err)
 	}
 }
 

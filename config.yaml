@@ -5,10 +5,10 @@ data:
   compress: false
 server:
   mode: debug
-  port: :9090
+  port: 9090
   sequence: true
-  redcon:
-    port: :6380
+  redis:
+    port: 6380
 logger:
   level: info
 ms:
