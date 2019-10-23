@@ -53,11 +53,12 @@ func New() (*Synchronous, error) {
 	s := &Synchronous{}
 	s.role = role
 	if role == Master {
-		ln, err := net.Listen("tcp", config.D.GetString("ms.m.port"))
+	    addr := fmt.Sprintf(":%s", config.D.GetString("ms.m.port"))
+		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return nil, err
 		}
-		logger.D.Infof("Synchronous new listen port: %s\n", config.D.GetString("ms.m.port"))
+		logger.D.Infof("Synchronous new listen port: %s\n", addr)
 		go func() {
 			for {
 				conn, err := ln.Accept()

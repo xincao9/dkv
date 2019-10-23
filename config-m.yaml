@@ -5,13 +5,13 @@ data:
   compress: false
 server:
   mode: release
-  port: :8090
+  port: 8090
   sequence: true
-  redcon:
-    port: :5380
+  redis:
+    port: 5380
 logger:
   level: info
 ms:
   role: 1
   m:
-    port: :7380
+    port: 7380
