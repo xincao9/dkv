@@ -1,22 +1,34 @@
 package meta
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+    "encoding/json"
+    "io/ioutil"
+    "os"
+    "path/filepath"
 )
 
-type Meta struct {
-	OlderFids []int64 `json:"fids"`
-	Dir       string  `json:"dir"`
-	ActiveFid int64   `json:"activeFid"`
-}
+var (
+	EOF = []byte("CYZEOF")
+)
 
 const (
 	metaFn     = "meta.json"
 	DefaultDir = "/tmp/dkv"
+	Master     = 1
+	Slave      = 2
 )
+
+type SlaveInfo struct {
+	Fid int64 `json:"fid"`
+	Off int64 `json:"off"`
+}
+
+type Meta struct {
+	OlderFids  []int64               `json:"fids"`
+	Dir        string                `json:"dir"`
+	ActiveFid  int64                 `json:"activeFid"`
+	SlaveInfos map[string]*SlaveInfo `json:"slaveInfos"`
+}
 
 func NewMeta(dir string) (*Meta, error) {
 	if dir == "" {
@@ -39,7 +51,7 @@ func NewMeta(dir string) (*Meta, error) {
 		}
 		return m, nil
 	}
-	m := &Meta{Dir: dir}
+	m := &Meta{Dir: dir, SlaveInfos: make(map[string]*SlaveInfo)}
 	m.Save()
 	return m, nil
 }
@@ -50,7 +62,13 @@ func (m *Meta) Save() error {
 	if err != nil {
 		return err
 	}
-	os.Mkdir(m.Dir, 0755)
+	ok, err := isExist(fn)
+	if err != nil {
+		return err
+	}
+	if ok == false {
+		os.Mkdir(m.Dir, 0755)
+	}
 	return ioutil.WriteFile(fn, b, 0644)
 }
 
@@ -63,4 +81,14 @@ func isExist(fn string) (bool, error) {
 		return false, nil
 	}
 	return true, err
+}
+
+func (m *Meta) SaveSlaveInfo(host string, sI *SlaveInfo) error {
+	m.SlaveInfos[host] = sI
+	return m.Save()
+}
+
+func (m *Meta) GetSalveInfoByHost(host string) (sI *SlaveInfo, state bool) {
+	sI, state = m.SlaveInfos[host]
+	return
 }

@@ -20,11 +20,11 @@ func init() {
 	// 配置文件设置
 	D = viper.New()
 	for _, t := range []string{"yaml", "yml"} {
-        if strings.HasSuffix(*c, t) {
-            i := strings.LastIndex(*c, t)
-            *c = string([]byte(*c)[:i-1])
-        }
-    }
+		if strings.HasSuffix(*c, t) {
+			i := strings.LastIndex(*c, t)
+			*c = string([]byte(*c)[:i-1])
+		}
+	}
 	if *c == "" {
 		D.SetConfigName("config")
 	} else {
@@ -42,7 +42,7 @@ func init() {
 	D.SetDefault("server.sequence", true)
 	D.SetDefault("logger.level", "debug")
 	D.SetDefault("ms.role", 0)                  // 0 默认模式，1 主节点 2 从节点
-	D.SetDefault("ms.m.port", "7380")          // 主节点监听端口
+	D.SetDefault("ms.m.port", "7380")           // 主节点监听端口
 	D.SetDefault("ms.s.addr", "localhost:7380") // 从同步的主节点地址
 	err := D.ReadInConfig()
 	if err != nil {

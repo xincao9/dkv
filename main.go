@@ -1,22 +1,22 @@
 package main
 
 import (
-    "dkv/cache"
-    "dkv/config"
-    "dkv/kv"
-    "dkv/logger"
-    "dkv/metrics"
-    "dkv/oss"
-    "dkv/pprof"
-    "dkv/redis"
-    "dkv/store"
-    _ "dkv/store/synchronous"
-    "flag"
-    "fmt"
-    "github.com/gin-gonic/gin"
-    "github.com/sirupsen/logrus"
-    "os"
-    "os/exec"
+	"dkv/cache"
+	"dkv/config"
+	"dkv/kv"
+	"dkv/logger"
+	"dkv/metrics"
+	"dkv/oss"
+	"dkv/pprof"
+	"dkv/redis"
+	"dkv/store"
+	_ "dkv/store/synchronous"
+	"flag"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"os"
+	"os/exec"
 )
 
 func init() {

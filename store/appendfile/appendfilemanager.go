@@ -22,14 +22,10 @@ const (
 	DeleteFlag = "S_D"
 	idle       = 0
 	running    = 1
-	Master     = 1
-	Slave      = 2
 )
 
 var (
 	KeyNotFound = errors.New("key is not found")
-	m           *meta.Meta
-	EOF         = []byte("CYZEOF")
 )
 
 type (
@@ -39,7 +35,7 @@ type (
 		size   int32
 	}
 	AppendFileManager struct {
-		meta     *meta.Meta
+		Meta     *meta.Meta
 		activeAF *appendFile
 		olderAF  []*appendFile
 		index    sync.Map
@@ -64,7 +60,7 @@ func (i i64) Less(x, y int) bool {
 
 func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 	var err error
-	m, err = meta.NewMeta(dir)
+	m, err := meta.NewMeta(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -94,13 +90,13 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		afmap.Store(fid, af)
 	}
 	fm := &AppendFileManager{
-		meta:     m,
+		Meta:     m,
 		activeAF: activeAF,
 		olderAF:  olderAF,
 		index:    sync.Map{},
 		afmap:    afmap,
 	}
-	if config.D.GetInt("ms.role") != Slave {
+	if config.D.GetInt("ms.role") != meta.Slave {
 		go func() {
 			for range time.Tick(time.Second) {
 				err := func() error {
@@ -127,9 +123,9 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 					fm.olderAF = append(fm.olderAF, oaf)
 					fm.activeAF = af
 					oaf.SetOlder()
-					fm.meta.ActiveFid = fid
-					fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
-					fm.meta.Save()
+					fm.Meta.ActiveFid = fid
+					fm.Meta.OlderFids = append(fm.Meta.OlderFids, oaf.fid)
+					fm.Meta.Save()
 					if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
 						go func() { fm.IndexSave() }()
 					}
@@ -217,7 +213,7 @@ func (fm *AppendFileManager) Write(k []byte, v []byte) error {
 
 // 用于数据文件同步
 func (fm *AppendFileManager) WriteRaw(d []byte) error {
-	i := bytes.Index(d, EOF)
+	i := bytes.Index(d, meta.EOF)
 	if i == -1 {
 		_, err := fm.activeAF.Write(d)
 		if err != nil {
@@ -232,7 +228,7 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 		}
 	}
 	fid := time.Now().UnixNano()
-	af, err := NewAppendFile(filepath.Join(m.Dir, strconv.FormatInt(fid, 10)), Active, fid)
+	af, err := NewAppendFile(filepath.Join(fm.Meta.Dir, strconv.FormatInt(fid, 10)), Active, fid)
 	if err != nil {
 		return err
 	}
@@ -241,9 +237,9 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 	fm.olderAF = append(fm.olderAF, oaf)
 	fm.activeAF = af
 	oaf.SetOlder()
-	fm.meta.ActiveFid = fid
-	fm.meta.OlderFids = append(fm.meta.OlderFids, oaf.fid)
-	fm.meta.Save()
+	fm.Meta.ActiveFid = fid
+	fm.Meta.OlderFids = append(fm.Meta.OlderFids, oaf.fid)
+	fm.Meta.Save()
 	err = fm.loadAppendFile(oaf)
 	if err != nil {
 		return err
@@ -292,17 +288,17 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 
 func (fm *AppendFileManager) GetAppendFiles() []string {
 	var fns []string
-	if fm.meta.OlderFids != nil {
-		sort.Sort(i64(fm.meta.OlderFids))
-		for _, fid := range fm.meta.OlderFids {
+	if fm.Meta.OlderFids != nil {
+		sort.Sort(i64(fm.Meta.OlderFids))
+		for _, fid := range fm.Meta.OlderFids {
 			if fid != 0 {
-				fn := filepath.Join(fm.meta.Dir, strconv.FormatInt(fid, 10))
+				fn := filepath.Join(fm.Meta.Dir, strconv.FormatInt(fid, 10))
 				fns = append(fns, fn)
 			}
 		}
 	}
-	if fm.meta.ActiveFid != 0 {
-		fn := filepath.Join(fm.meta.Dir, strconv.FormatInt(fm.meta.ActiveFid, 10))
+	if fm.Meta.ActiveFid != 0 {
+		fn := filepath.Join(fm.Meta.Dir, strconv.FormatInt(fm.Meta.ActiveFid, 10))
 		fns = append(fns, fn)
 	}
 	return fns
@@ -312,9 +308,9 @@ func (fm *AppendFileManager) Load() error {
 	startTime := time.Now()
 	logger.D.Infof("开始加载索引")
 	if config.D.GetBool("data.invalidIndex") {
-		if fm.meta.OlderFids != nil {
-			sort.Sort(i64(fm.meta.OlderFids))
-			for _, fid := range fm.meta.OlderFids {
+		if fm.Meta.OlderFids != nil {
+			sort.Sort(i64(fm.Meta.OlderFids))
+			for _, fid := range fm.Meta.OlderFids {
 				af, _ := fm.afmap.Load(fid)
 				err := fm.loadAppendFile(af.(*appendFile))
 				if err != nil {
@@ -325,8 +321,8 @@ func (fm *AppendFileManager) Load() error {
 	} else {
 		fm.IndexLoad()
 	}
-	if fm.meta.ActiveFid != 0 {
-		af, _ := fm.afmap.Load(fm.meta.ActiveFid)
+	if fm.Meta.ActiveFid != 0 {
+		af, _ := fm.afmap.Load(fm.Meta.ActiveFid)
 		err := fm.loadAppendFile(af.(*appendFile))
 		if err != nil {
 			return err
@@ -382,7 +378,7 @@ func (fm *AppendFileManager) Close() {
 	for _, af := range fm.olderAF {
 		af.Close()
 	}
-	fm.meta.Save()
+	fm.Meta.Save()
 }
 
 func (fm *AppendFileManager) IndexSave() {
@@ -393,7 +389,7 @@ func (fm *AppendFileManager) IndexSave() {
 	defer func() {
 		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
 	}()
-	fn := filepath.Join(fm.meta.Dir, "idx")
+	fn := filepath.Join(fm.Meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return
@@ -421,7 +417,7 @@ func (fm *AppendFileManager) IndexSave() {
 }
 
 func (fm *AppendFileManager) IndexLoad() error {
-	fn := filepath.Join(fm.meta.Dir, "idx")
+	fn := filepath.Join(fm.Meta.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 	if err != nil {
 		return err
@@ -517,11 +513,11 @@ func (fm *AppendFileManager) Remove(af *appendFile) {
 	af.Close()
 	os.Remove(af.fn)
 	ofids := make([]int64, 0)
-	for _, fid := range fm.meta.OlderFids {
+	for _, fid := range fm.Meta.OlderFids {
 		if fid != af.fid {
 			ofids = append(ofids, fid)
 		}
 	}
-	fm.meta.OlderFids = ofids
-	fm.meta.Save()
+	fm.Meta.OlderFids = ofids
+	fm.Meta.Save()
 }
