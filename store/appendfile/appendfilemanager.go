@@ -286,22 +286,20 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	return kv.Value, nil
 }
 
-func (fm *AppendFileManager) GetAppendFiles() []string {
-	var fns []string
+func (fm *AppendFileManager) GetFids() []int64 {
+	var fids []int64
 	if fm.Meta.OlderFids != nil {
 		sort.Sort(i64(fm.Meta.OlderFids))
 		for _, fid := range fm.Meta.OlderFids {
 			if fid != 0 {
-				fn := filepath.Join(fm.Meta.Dir, strconv.FormatInt(fid, 10))
-				fns = append(fns, fn)
+				fids = append(fids, fid)
 			}
 		}
 	}
 	if fm.Meta.ActiveFid != 0 {
-		fn := filepath.Join(fm.Meta.Dir, strconv.FormatInt(fm.Meta.ActiveFid, 10))
-		fns = append(fns, fn)
+		fids = append(fids, fm.Meta.ActiveFid)
 	}
-	return fns
+	return fids
 }
 
 func (fm *AppendFileManager) Load() error {

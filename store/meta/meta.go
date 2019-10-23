@@ -1,10 +1,10 @@
 package meta
 
 import (
-    "encoding/json"
-    "io/ioutil"
-    "os"
-    "path/filepath"
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 var (
