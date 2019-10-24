@@ -16,35 +16,22 @@ func TestBalancer_Choose(t *testing.T) {
 		t.Logf("%s\n", node)
 		D.Increase(node, uint64(rand.Intn(100)))
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 3)
 	for i := 0; i < 100000; i++ {
 		node := D.Choose()
 		t.Logf("%s\n", node)
 		D.Increase(node, uint64(rand.Intn(100)))
 	}
-	time.Sleep(time.Second)
-	for i := 0; i < 100000; i++ {
-		node := D.Choose()
-		t.Logf("%s\n", node)
-		D.Increase(node, uint64(rand.Intn(100)))
-	}
-	time.Sleep(time.Second)
-	for i := 0; i < 100000; i++ {
-		node := D.Choose()
-		t.Logf("%s\n", node)
-		D.Increase(node, uint64(rand.Intn(100)))
-	}
-	time.Sleep(time.Second)
-	for i := 0; i < 100000; i++ {
-		node := D.Choose()
-		t.Logf("%s\n", node)
-		D.Increase(node, uint64(rand.Intn(100)))
-	}
-	time.Sleep(time.Second)
-	for i := 0; i < 100000; i++ {
-		node := D.Choose()
-		t.Logf("%s\n", node)
-		D.Increase(node, uint64(rand.Intn(100)))
-	}
-	time.Sleep(time.Second)
+}
+
+func BenchmarkBalancer_Choose(b *testing.B) {
+    nodes := []string{"a", "b", "c"}
+    for _, node := range nodes {
+        D.Register(node)
+    }
+    for i := 0; i < b.N; i++ {
+        node := D.Choose()
+        b.Logf("%s\n", node)
+        D.Increase(node, uint64(rand.Intn(100)))
+    }
 }

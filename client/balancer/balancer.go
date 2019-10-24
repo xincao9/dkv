@@ -18,18 +18,18 @@ func init () {
 type balancer struct {
 	counter *sync.Map
 	oc      *sync.Map
-	tps     *sync.Map
+	ct      *sync.Map
 }
 
 func New() *balancer {
-	b := &balancer{counter: &sync.Map{}, oc: &sync.Map{}, tps: &sync.Map{}}
+	b := &balancer{counter: &sync.Map{}, oc: &sync.Map{}, ct: &sync.Map{}}
 	go func() {
 		for range time.Tick(time.Second) {
 			b.counter.Range(func(label, v interface{}) bool {
 				ov, _ := b.oc.Load(label)
 				c, _ := v.(*uint64)
 				oc, _ := ov.(*uint64)
-				b.tps.Store(label, (*c-*oc)/30)
+				b.ct.Store(label, *c-*oc)
 				*oc = *c
 				b.oc.Store(label, oc)
 				return true
@@ -44,6 +44,7 @@ func (lb *balancer) Register (node string) {
 	lb.counter.Store(node, &c)
 	c = uint64(0)
 	lb.oc.Store(node, &c)
+	lb.ct.Store(node, 0)
 }
 
 func (lb *balancer) Increase(node string, v uint64) {
@@ -52,13 +53,20 @@ func (lb *balancer) Increase(node string, v uint64) {
 		return
 	}
 	c, _ := val.(*uint64)
-	atomic.AddUint64(c, v)
+	n := atomic.AddUint64(c, v)
+	if n >= math.MaxUint64 || n < 0 {
+        lb.ct.Range(func(key, value interface{}) bool {
+            rn, _ := key.(string)
+            lb.Register(rn)
+            return true
+        })
+    }
 }
 
 func (lb *balancer) Choose() string {
 	min := uint64(math.MaxUint64)
 	cn := ""
-	lb.tps.Range(func(key, value interface{}) bool {
+	lb.ct.Range(func(key, value interface{}) bool {
 		c, _ := value.(uint64)
 		if c < min {
 			min = c
