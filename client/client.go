@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"crypto/tls"
+	"dkv/client/balancer"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,8 +28,9 @@ var (
 )
 
 type client struct {
-	c   *http.Client
-	uri string
+	c         *http.Client
+	masterUri string
+	uris      []string
 }
 
 func NewClient(addr string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*client, error) {
@@ -49,11 +51,44 @@ func NewClient(addr string, timeout time.Duration, idleConnTimeout time.Duration
 	if !strings.HasPrefix(addr, "http") {
 		proto = "http://"
 	}
-	return &client{c: c, uri: fmt.Sprintf("%s%s/kv", proto, addr)}, nil
+	return &client{c: c, masterUri: fmt.Sprintf("%s%s/kv", proto, addr)}, nil
+}
+
+func NewMSClient(master string, slaves []string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*client, error) {
+	if master == "" {
+		return nil, ErrAddrNotEmpty
+	}
+	c := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:        maxIdleConns,
+			MaxIdleConnsPerHost: maxIdleConnsPerHost,
+			IdleConnTimeout:     idleConnTimeout,
+			DisableCompression:  true,
+		},
+		Timeout: timeout,
+	}
+	proto := ""
+	if !strings.HasPrefix(master, "http") {
+		proto = "http://"
+	}
+	var uris []string
+	for _, slave := range slaves {
+		slaveUri := fmt.Sprintf("%s%s/kv", proto, slave)
+		balancer.D.Register(slaveUri)
+		uris = append(uris, slaveUri)
+	}
+	masterUri := fmt.Sprintf("%s%s/kv", proto, master)
+	uris = append(uris, masterUri)
+	return &client{c: c, masterUri: masterUri, uris: uris}, nil
 }
 
 func New(addr string, timeout time.Duration) (*client, error) {
 	return NewClient(addr, timeout, 0, 0, 0)
+}
+
+func NewMS(master string, slaves []string, timeout time.Duration) (*client, error) {
+	return NewMSClient(master, slaves, timeout, 0, 0, 0)
 }
 
 func (c *client) Put(key, value string) (*Result, error) {
@@ -65,7 +100,7 @@ func (c *client) Put(key, value string) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	request, err := http.NewRequest(http.MethodPut, c.uri, bytes.NewReader(body))
+	request, err := http.NewRequest(http.MethodPut, c.masterUri, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -79,16 +114,32 @@ func (c *client) Put(key, value string) (*Result, error) {
 }
 
 func (c *client) Get(key string) (*Result, error) {
+	return c.GetOrRealtime(key, false)
+}
+
+func (c *client) GetRealtime(key string) (*Result, error) {
+	return c.GetOrRealtime(key, true)
+}
+
+func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
+	startTime := time.Now()
 	if key == "" {
 		return nil, errors.New("key not empty")
 	}
-	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.uri, key), nil)
+	uri := c.masterUri
+	if realtime == false {
+		uri = balancer.D.Choose()
+	}
+	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", uri, key), nil)
 	if err != nil {
 		return nil, err
 	}
 	response, err := c.c.Do(request)
 	if err != nil {
 		return nil, err
+	}
+	if realtime == false {
+		defer balancer.D.Add(uri, uint64(time.Since(startTime).Nanoseconds()/1e6))
 	}
 	defer response.Body.Close()
 	return parseResponse(response)
@@ -98,7 +149,7 @@ func (c *client) Delete(key string) (*Result, error) {
 	if key == "" {
 		return nil, errors.New("key not empty")
 	}
-	request, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.uri, key), nil)
+	request, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.masterUri, key), nil)
 	if err != nil {
 		return nil, err
 	}
