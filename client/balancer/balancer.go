@@ -4,63 +4,43 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 var (
 	D *balancer
 )
 
-func init () {
+func init() {
 	D = New()
 }
 
 type balancer struct {
-	counter *sync.Map
-	oc      *sync.Map
-	ct      *sync.Map
+	ct *sync.Map
 }
 
 func New() *balancer {
-	b := &balancer{counter: &sync.Map{}, oc: &sync.Map{}, ct: &sync.Map{}}
-	go func() {
-		for range time.Tick(time.Second) {
-			b.counter.Range(func(label, v interface{}) bool {
-				ov, _ := b.oc.Load(label)
-				c, _ := v.(*uint64)
-				oc, _ := ov.(*uint64)
-				b.ct.Store(label, *c-*oc)
-				*oc = *c
-				b.oc.Store(label, oc)
-				return true
-			})
-		}
-	}()
-	return b
+	return &balancer{ct: &sync.Map{}}
 }
 
-func (lb *balancer) Register (node string) {
+func (lb *balancer) Register(node string) {
 	c := uint64(0)
-	lb.counter.Store(node, &c)
-	c = uint64(0)
-	lb.oc.Store(node, &c)
-	lb.ct.Store(node, 0)
+	lb.ct.Store(node, &c)
 }
 
-func (lb *balancer) Increase(node string, v uint64) {
-	val, ok := lb.counter.Load(node)
+func (lb *balancer) Add(node string, v uint64) {
+	val, ok := lb.ct.Load(node)
 	if ok == false {
 		return
 	}
 	c, _ := val.(*uint64)
 	n := atomic.AddUint64(c, v)
-	if n >= math.MaxUint64 || n < 0 {
-        lb.ct.Range(func(key, value interface{}) bool {
-            rn, _ := key.(string)
-            lb.Register(rn)
-            return true
-        })
-    }
+	if n >= math.MaxUint64 {
+		lb.ct.Range(func(key, value interface{}) bool {
+			rn, _ := key.(string)
+			lb.Register(rn)
+			return true
+		})
+	}
 }
 
 func (lb *balancer) Choose() string {

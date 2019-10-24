@@ -139,7 +139,7 @@ func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 		return nil, err
 	}
 	if realtime == false {
-		defer balancer.D.Increase(uri, uint64(time.Since(startTime).Nanoseconds()/1e6))
+		defer balancer.D.Add(uri, uint64(time.Since(startTime).Nanoseconds()/1e6))
 	}
 	defer response.Body.Close()
 	return parseResponse(response)
