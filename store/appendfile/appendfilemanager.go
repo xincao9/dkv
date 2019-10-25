@@ -137,6 +137,31 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 			}
 		}()
 	}
+	if config.D.GetInt("ms.role") == meta.Slave {
+		go func() {
+			for range time.Tick(time.Second * 5) {
+				err := func() error {
+					defer func() {
+						if err := recover(); err != nil {
+							logger.D.Errorf("load文件定时任务异常 %v\n", err)
+						}
+					}()
+					fm.activeAF.Sync()
+					s, err := fm.activeAF.Size()
+					if err != nil {
+						return err
+					}
+					if s <= 0 {
+						return nil
+					}
+					return fm.loadAppendFile(fm.activeAF)
+				}()
+				if err != nil {
+					logger.D.Errorf("load文件定时任务异常 %v\n", err)
+				}
+			}
+		}()
+	}
 	go func() {
 		for range time.Tick(time.Minute) {
 			if time.Now().Unix()-fm.rot <= 300 {
