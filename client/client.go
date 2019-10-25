@@ -79,6 +79,7 @@ func NewMSClient(master string, slaves []string, timeout time.Duration, idleConn
 		uris = append(uris, slaveUri)
 	}
 	masterUri := fmt.Sprintf("%s%s/kv", proto, master)
+	balancer.D.Register(masterUri)
 	uris = append(uris, masterUri)
 	return &client{c: c, masterUri: masterUri, uris: uris}, nil
 }
