@@ -43,6 +43,7 @@ type (
 		counter  sync.Map
 		rot      int64 // Recent operation time
 		sistate  int32 // save index state
+		loadtime time.Time
 	}
 	i64 []int64
 )
@@ -95,6 +96,7 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 		olderAF:  olderAF,
 		index:    sync.Map{},
 		afmap:    afmap,
+		loadtime: time.Now(),
 	}
 	if config.D.GetInt("ms.role") != meta.Slave {
 		go func() {
@@ -219,6 +221,13 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 		if err != nil {
 			return err
 		}
+		if time.Since(fm.loadtime).Seconds() > 3 {
+			fm.loadtime = time.Now()
+			err = fm.loadAppendFile(fm.activeAF)
+			if err != nil {
+				logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
+			}
+		}
 		return nil
 	}
 	if i != 0 {
@@ -240,9 +249,10 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 	fm.Meta.ActiveFid = fid
 	fm.Meta.OlderFids = append(fm.Meta.OlderFids, oaf.fid)
 	fm.Meta.Save()
+	fm.loadtime = time.Now()
 	err = fm.loadAppendFile(oaf)
 	if err != nil {
-		return err
+		logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
 	}
 	if atomic.CompareAndSwapInt32(&fm.sistate, idle, running) {
 		go func() { fm.IndexSave() }()
@@ -352,7 +362,9 @@ func (fm *AppendFileManager) loadAppendFile(af *appendFile) error {
 		s := int(kv.KeySize) + int(kv.ValueSize)
 		d := make([]byte, 9+s)
 		n, err = af.Read(off, d)
-		if err != nil {
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
 			return err
 		}
 		if n < 9+s {

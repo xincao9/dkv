@@ -10,7 +10,7 @@ server:
   redis:
     port: 5381
 logger:
-  level: info
+  level: debug
 ms:
   role: 2
   s:
