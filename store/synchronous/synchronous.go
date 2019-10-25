@@ -63,7 +63,7 @@ func New() (*Synchronous, error) {
 					for state {
 						_, state = s.conns.Load(host)
 						if state {
-							time.Sleep(time.Second)
+							time.Sleep(time.Second * 3)
 							s.handler(host)
 						}
 					}
