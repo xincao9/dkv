@@ -1,7 +1,7 @@
 package synchronous
 
 import (
-	"dkv/config"
+	"dkv/constant"
 	"dkv/logger"
 	"dkv/store"
 	"dkv/store/meta"
@@ -17,8 +17,8 @@ import (
 )
 
 type Synchronous struct {
-	role  int
-	conns sync.Map
+	role        int
+	connections sync.Map
 }
 
 var (
@@ -34,14 +34,14 @@ func init() {
 }
 
 func New() (*Synchronous, error) {
-	role := config.D.GetInt("ms.role")
-	if role != meta.Master && role != meta.Slave {
+	role := constant.MSRole
+	if role != constant.Master && role != constant.Slave {
 		return nil, nil
 	}
 	s := &Synchronous{}
 	s.role = role
-	if role == meta.Master {
-		addr := fmt.Sprintf(":%s", config.D.GetString("ms.m.port"))
+	if role == constant.Master {
+		addr := fmt.Sprintf(":%d", constant.MSMPort)
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return nil, err
@@ -58,10 +58,10 @@ func New() (*Synchronous, error) {
 					i := strings.LastIndex(c.RemoteAddr().String(), ":")
 					host := string([]byte(c.RemoteAddr().String())[:i])
 					logger.D.Infof("Synchronous new handler host: %s\n", host)
-					s.conns.Store(host, conn)
+					s.connections.Store(host, conn)
 					state := true
 					for state {
-						_, state = s.conns.Load(host)
+						_, state = s.connections.Load(host)
 						if state {
 							time.Sleep(time.Second * 3)
 							s.handler(host)
@@ -72,7 +72,7 @@ func New() (*Synchronous, error) {
 		}()
 		return s, nil
 	}
-	addr := config.D.GetString("ms.s.addr")
+	addr := constant.MSSAddr
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func New() (*Synchronous, error) {
 				logger.D.Errorf("Synchronous new read: %v\n", err)
 				break
 			}
-			err = store.D.WriteRaw(b[:n])
+			err = store.D.FM.WriteRaw(b[:n])
 			if err != nil {
 				logger.D.Errorf("Synchronous new store write : %v\n", err)
 			}
@@ -102,45 +102,44 @@ func New() (*Synchronous, error) {
 }
 
 func (s *Synchronous) handler(host string) {
-	c, _ := s.conns.Load(host)
+	c, _ := s.connections.Load(host)
 	conn := c.(net.Conn)
-	sI, state := store.D.FM.Meta.GetSalveInfoByHost(host)
-	if state == false {
-		sI = &meta.SlaveInfo{
-			Fid: 0,
-			Off: 0,
-		}
+	sI, state := meta.D.GetSalveInfoByHost(host)
+	var cFid, cOff int64
+	if state {
+		cFid = sI.Fid
+		cOff = sI.Off
 	}
-	fids := store.D.FM.GetFids()
+	fids := meta.D.GetFids()
 	for _, fid := range fids {
-		fn := filepath.Join(store.D.FM.Meta.Dir, strconv.FormatInt(fid, 10))
-		if fid < sI.Fid {
+		fn := filepath.Join(constant.Dir, strconv.FormatInt(fid, 10))
+		if fid < cFid {
 			continue
 		}
-		if fid > sI.Fid {
-			sI.Off = 0
-			if sI.Fid != 0 {
-				conn.Write(meta.EOF)
+		if fid > cFid {
+			cOff = 0
+			if cFid != 0 {
+				conn.Write(constant.EOF)
 			}
 		}
-		f, err := os.OpenFile(fn, os.O_RDONLY, 0644)
+		fo, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
 			logger.D.Errorf("Synchronous handler openfile fn: %s, err: %v\n", fn, err)
 			continue
 		}
-		fi, err := f.Stat()
+		fi, err := fo.Stat()
 		if err == nil {
-			if fid == sI.Fid && fi.Size() <= sI.Off {
-				f.Close()
+			if fid == cFid && fi.Size() <= cOff {
+				fo.Close()
 				continue
 			}
 		}
-		sI.Fid = fid
+		cFid = fid
 		b := make([]byte, 1024)
 		for {
-			n, err := f.ReadAt(b, sI.Off)
+			n, err := fo.ReadAt(b, cOff)
 			if n > 0 {
-				sI.Off = sI.Off + int64(n)
+				cOff = cOff + int64(n)
 				_, err = conn.Write(b[:n])
 				if err != nil {
 					logger.D.Errorf("Synchronous handler connection write fn = %s, err = %v\n", fn, err)
@@ -148,14 +147,14 @@ func (s *Synchronous) handler(host string) {
 				}
 			}
 			if err == io.EOF {
-				store.D.FM.Meta.SaveSlaveInfo(host, sI)
+				meta.D.SaveSlaveInfo(host, cFid, cOff)
 				logger.D.Infof("Synchronous handler write fn = %s finish\n", fn)
-				f.Close()
+				fo.Close()
 				break
 			} else if err != nil {
-				store.D.FM.Meta.SaveSlaveInfo(host, sI)
+				meta.D.SaveSlaveInfo(host, cFid, cOff)
 				logger.D.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
-				f.Close()
+				fo.Close()
 				break
 			}
 		}
@@ -163,9 +162,9 @@ func (s *Synchronous) handler(host string) {
 }
 
 func (s *Synchronous) close(addr string) {
-	val, state := s.conns.Load(addr)
+	val, state := s.connections.Load(addr)
 	if state {
 		val.(net.Conn).Close()
-		s.conns.Delete(addr)
+		s.connections.Delete(addr)
 	}
 }

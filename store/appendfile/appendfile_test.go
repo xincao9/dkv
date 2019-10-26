@@ -1,18 +1,19 @@
 package appendfile
 
 import (
+	"dkv/constant"
 	"os"
 	"testing"
 )
 
 func TestNewAppendFile(t *testing.T) {
 	os.Remove("/tmp/0")
-	af, err := NewAppendFile("/tmp/0", Active, 0)
+	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)
 	}
 	af.Close()
-	af, err = NewAppendFile("/tmp/0", Older, 0)
+	af, err = NewAppendFile("/tmp/0", constant.Older, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -22,7 +23,7 @@ func TestNewAppendFile(t *testing.T) {
 
 func TestAppendFile_Write(t *testing.T) {
 	os.Remove("/tmp/0")
-	af, err := NewAppendFile("/tmp/0", Active, 0)
+	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -33,7 +34,7 @@ func TestAppendFile_Write(t *testing.T) {
 
 func TestAppendFile_Read(t *testing.T) {
 	os.Remove("/tmp/0")
-	af, err := NewAppendFile("/tmp/0", Active, 0)
+	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -42,7 +43,7 @@ func TestAppendFile_Read(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	af, err = NewAppendFile("/tmp/0", Older, 0)
+	af, err = NewAppendFile("/tmp/0", constant.Older, 0)
 	if err != nil {
 		t.Error(err)
 	}

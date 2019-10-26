@@ -3,10 +3,10 @@ package kv
 import (
 	"dkv/cache"
 	"dkv/compress"
+	"dkv/constant"
 	"dkv/logger"
 	"dkv/metrics"
 	"dkv/store"
-	"dkv/store/appendfile"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -39,7 +39,7 @@ func Route(engine *gin.Engine) {
 			metrics.GetCount.WithLabelValues("success", "disk").Inc()
 			return
 		}
-		if err == appendfile.KeyNotFound {
+		if err == constant.KeyNotFound {
 			responseKV(c, http.StatusOK, "没有找到", &KV{K: key, V: ""})
 			metrics.GetCount.WithLabelValues("failure", "not_found").Inc()
 			return
@@ -79,7 +79,7 @@ func Route(engine *gin.Engine) {
 			response(c, http.StatusOK, "成功")
 			return
 		}
-		if err == appendfile.KeyNotFound {
+		if err == constant.KeyNotFound {
 			response(c, http.StatusOK, "没有找到")
 			return
 		}

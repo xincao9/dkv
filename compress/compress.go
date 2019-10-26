@@ -1,19 +1,19 @@
 package compress
 
 import (
-	"dkv/config"
+	"dkv/constant"
 	"github.com/golang/snappy"
 )
 
 func Encode(d []byte) []byte {
-	if config.D.GetBool("data.compress") == false {
+	if constant.Compress == false {
 		return d
 	}
 	return snappyEncode(d)
 }
 
 func Decode(d []byte) []byte {
-	if config.D.GetBool("data.compress") == false {
+	if constant.Compress == false {
 		return d
 	}
 	return snappyDecode(d)

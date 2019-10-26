@@ -1,40 +1,40 @@
 package meta
 
 import (
+	"dkv/constant"
+	"dkv/logger"
 	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
-var (
-	EOF = []byte("CYZEOF")
-)
+var D *meta
 
-const (
-	metaFn     = "meta.json"
-	DefaultDir = "/tmp/dkv"
-	Master     = 1
-	Slave      = 2
-)
-
-type SlaveInfo struct {
-	Fid int64 `json:"fid"`
-	Off int64 `json:"off"`
-}
-
-type Meta struct {
-	OlderFids  []int64               `json:"fids"`
-	Dir        string                `json:"dir"`
-	ActiveFid  int64                 `json:"activeFid"`
-	SlaveInfos map[string]*SlaveInfo `json:"slaveInfos"`
-}
-
-func NewMeta(dir string) (*Meta, error) {
-	if dir == "" {
-		dir = DefaultDir
+func init() {
+	var err error
+	D, err = New()
+	if err != nil {
+		logger.D.Fatalf("Fatal error meta: %v\n", err)
 	}
-	fn := filepath.Join(dir, metaFn)
+}
+
+type (
+	i64       []int64
+	slaveInfo struct {
+		Fid int64 `json:"fid"`
+		Off int64 `json:"off"`
+	}
+	meta struct {
+		OlderFids  []int64               `json:"olderFids"`
+		ActiveFid  int64                 `json:"activeFid"`
+		SlaveInfos map[string]*slaveInfo `json:"slaveInfos"`
+	}
+)
+
+func New() (*meta, error) {
+	fn := filepath.Join(constant.Dir, constant.MetaFn)
 	ok, err := isExist(fn)
 	if err != nil {
 		return nil, err
@@ -44,20 +44,20 @@ func NewMeta(dir string) (*Meta, error) {
 		if err != nil {
 			return nil, err
 		}
-		m := &Meta{}
+		m := &meta{}
 		err = json.Unmarshal(b, m)
 		if err != nil {
 			return nil, err
 		}
 		return m, nil
 	}
-	m := &Meta{Dir: dir, SlaveInfos: make(map[string]*SlaveInfo)}
+	m := &meta{SlaveInfos: make(map[string]*slaveInfo)}
 	m.Save()
 	return m, nil
 }
 
-func (m *Meta) Save() error {
-	fn := filepath.Join(m.Dir, metaFn)
+func (m *meta) Save() error {
+	fn := filepath.Join(constant.Dir, constant.MetaFn)
 	b, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (m *Meta) Save() error {
 		return err
 	}
 	if ok == false {
-		os.Mkdir(m.Dir, 0755)
+		os.Mkdir(constant.Dir, 0755)
 	}
 	return ioutil.WriteFile(fn, b, 0644)
 }
@@ -83,12 +83,42 @@ func isExist(fn string) (bool, error) {
 	return true, err
 }
 
-func (m *Meta) SaveSlaveInfo(host string, sI *SlaveInfo) error {
-	m.SlaveInfos[host] = sI
+func (m *meta) SaveSlaveInfo(host string, fid int64, off int64) error {
+	m.SlaveInfos[host] = &slaveInfo{
+		Fid: fid,
+		Off: off,
+	}
 	return m.Save()
 }
 
-func (m *Meta) GetSalveInfoByHost(host string) (sI *SlaveInfo, state bool) {
+func (m *meta) GetSalveInfoByHost(host string) (sI *slaveInfo, state bool) {
 	sI, state = m.SlaveInfos[host]
 	return
+}
+
+func (m *meta) GetFids() []int64 {
+	var fids []int64
+	if m.OlderFids != nil {
+		sort.Sort(i64(m.OlderFids))
+		for _, fid := range m.OlderFids {
+			if fid != 0 {
+				fids = append(fids, fid)
+			}
+		}
+	}
+	if m.ActiveFid != 0 {
+		fids = append(fids, m.ActiveFid)
+	}
+	return fids
+}
+
+func (i i64) Len() int {
+	return len(i)
+}
+func (i i64) Swap(x, y int) {
+	i[x], i[y] = i[y], i[x]
+}
+
+func (i i64) Less(x, y int) bool {
+	return i[x] < i[y]
 }
