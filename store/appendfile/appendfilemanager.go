@@ -138,7 +138,19 @@ func NewAppendFileManager(dir string) (*AppendFileManager, error) {
 				}
 			}
 		}()
-	}
+	} else {
+	    go func() {
+	        for range time.Tick(time.Second) {
+                if time.Since(fm.loadtime).Seconds() > 60 {
+                    fm.loadtime = time.Now()
+                    err = fm.loadAppendFile(fm.activeAF)
+                    if err != nil {
+                        logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
+                    }
+                }
+            }
+        }()
+    }
 	go func() {
 		for range time.Tick(time.Minute) {
 			if time.Now().Unix()-fm.rot <= 300 {
@@ -220,13 +232,6 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 		_, err := fm.activeAF.Write(d)
 		if err != nil {
 			return err
-		}
-		if time.Since(fm.loadtime).Seconds() > 3 {
-			fm.loadtime = time.Now()
-			err = fm.loadAppendFile(fm.activeAF)
-			if err != nil {
-				logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
-			}
 		}
 		return nil
 	}
