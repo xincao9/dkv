@@ -1,67 +1,66 @@
 package appendfile
 
 import (
+	"dkv/constant"
+	"dkv/logger"
 	"fmt"
 	"os"
-	"runtime/debug"
+	"path/filepath"
+	"strconv"
 	"sync"
-)
-
-const (
-	Older  = 1
-	Active = 2
 )
 
 type appendFile struct {
 	fn     string
 	offset int64
 	role   int
-	f      *os.File
+	fo     *os.File
 	fid    int64
 	sync.Mutex
 }
 
-func NewAppendFile(fn string, role int, fid int64) (*appendFile, error) {
-	if role != Older && role != Active {
+func NewAppendFile(dir string, role int, fid int64) (*appendFile, error) {
+	if role != constant.Older && role != constant.Active {
 		return nil, fmt.Errorf("role {%d} is not found", role)
 	}
 	af := &appendFile{
-		fn:     fn,
+		fn:     filepath.Join(dir, strconv.FormatInt(fid, 10)),
 		offset: 0,
 		role:   role,
 		fid:    fid,
 	}
 	var err error
-	if role == Active {
-		af.f, err = os.OpenFile(fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
+	if role == constant.Active {
+		af.fo, err = os.OpenFile(af.fn, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
+		if err != nil {
+			return nil, err
+		}
 		af.offset, err = af.Size()
 		if err != nil {
-			debug.PrintStack()
 			return nil, err
 		}
 		return af, nil
 	}
-	af.f, err = os.OpenFile(fn, os.O_RDONLY, 0644)
+	af.fo, err = os.OpenFile(af.fn, os.O_RDONLY, 0644)
 	if err != nil {
-		debug.PrintStack()
 		return nil, err
 	}
 	return af, nil
 }
 
 func (af *appendFile) Write(b []byte) (int64, error) {
-	if af.role == Older {
-		return -1, fmt.Errorf("write operations are not supported, %v\n", af)
+	if af.role == constant.Older {
+		return -1, fmt.Errorf("write operations are not supported, %v\n", af.fn)
 	}
 	af.Lock()
 	defer af.Unlock()
 	off := af.offset
-	n, err := af.f.Write(b)
+	n, err := af.fo.Write(b)
 	if err != nil {
 		return -1, err
 	}
 	if n != len(b) {
-		af.f.Seek(off, 0)
+		af.fo.Seek(off, 0)
 		return -1, fmt.Errorf("write %d bytes, actually write %d bytes", len(b), n)
 	}
 	af.offset += int64(n)
@@ -69,13 +68,11 @@ func (af *appendFile) Write(b []byte) (int64, error) {
 }
 
 func (af *appendFile) Read(offset int64, b []byte) (int, error) {
-	af.Lock()
-	defer af.Unlock()
-	return af.f.ReadAt(b, offset)
+	return af.fo.ReadAt(b, offset)
 }
 
 func (af *appendFile) Size() (int64, error) {
-	fi, err := af.f.Stat()
+	fi, err := af.fo.Stat()
 	if err != nil {
 		return -1, err
 	}
@@ -83,17 +80,22 @@ func (af *appendFile) Size() (int64, error) {
 }
 
 func (af *appendFile) SetOlder() {
-	af.role = Older
+	af.role = constant.Older
 	af.Sync()
 }
 
 func (af *appendFile) Close() {
-	if af.f != nil {
-		af.Sync()
-		af.f.Close()
+	af.Sync()
+	if af.fo != nil {
+		af.fo.Close()
 	}
 }
 
 func (af *appendFile) Sync() {
-	af.f.Sync()
+	if af.fo != nil {
+		err := af.fo.Sync()
+		if err != nil {
+			logger.D.Errorf("sync: %v\n", err)
+		}
+	}
 }

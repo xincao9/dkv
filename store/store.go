@@ -2,85 +2,92 @@ package store
 
 import (
 	"crypto/md5"
-	"dkv/config"
+	"dkv/constant"
 	"dkv/logger"
 	"dkv/store/appendfile"
 	"encoding/hex"
 	"math"
+	"sync"
 )
 
 var (
 	D *Store
 )
 
+// 启动存储引擎
 func init() {
-	// 启动存储引擎
 	var err error
-	D, err = NewStore(config.D.GetString("data.dir"))
+	D, err = NewStore()
 	if err != nil {
 		logger.D.Fatalf("Fatal error store: %v\n", err)
 	}
 }
 
-type KV struct {
-	K   []byte
-	V   []byte
-	Err error
-}
-
-type ROps struct {
-	kv   *KV
-	resp chan bool
-}
-
-type WOps struct {
-	kv   *KV
-	resp chan bool
-}
-
-type Store struct {
-	FM       *appendfile.AppendFileManager
-	rop      chan *ROps
-	wop      chan *WOps
-	shutdown chan bool
-}
-
-var (
-	sequence bool
+type (
+	kv struct {
+		k   []byte
+		v   []byte
+		err error
+	}
+	ops struct {
+		kv   *kv
+		resp chan bool
+	}
+	kvObjectPool struct {
+		pool *sync.Pool
+	}
+	Store struct {
+		FM       *appendfile.AppendFileManager
+		rop      chan *ops
+		wop      chan *ops
+		shutdown chan bool
+		kvop     *kvObjectPool
+		sequence bool
+	}
 )
 
-func NewStore(dir string) (*Store, error) {
-	sequence = config.D.GetBool("server.sequence")
-	fm, err := appendfile.NewAppendFileManager(dir)
+func NewStore() (*Store, error) {
+	fm, err := appendfile.NewAppendFileManager()
 	if err != nil {
 		return nil, err
 	}
-	rop := make(chan *ROps)
-	wop := make(chan *WOps)
+	if constant.Sequence == false {
+		return &Store{
+			FM:       fm,
+			sequence: constant.Sequence,
+		}, nil
+	}
+	rop := make(chan *ops)
+	wop := make(chan *ops)
 	shutdown := make(chan bool)
-	if sequence {
-		go func() {
-			for {
-				select {
-				case r := <-rop:
-					{
-						r.kv.V, r.kv.Err = fm.Read(r.kv.K)
-						r.resp <- true
-					}
-				case w := <-wop:
-					{
-						w.kv.Err = fm.Write(w.kv.K, w.kv.V)
-						w.resp <- true
-					}
-				case <-shutdown:
-					{
-						return
-					}
+	go func() {
+		for {
+			select {
+			case r := <-rop:
+				{
+					r.kv.v, r.kv.err = fm.Read(r.kv.k)
+					r.resp <- true
+				}
+			case w := <-wop:
+				{
+					w.kv.err = fm.Write(w.kv.k, w.kv.v)
+					w.resp <- true
+				}
+			case <-shutdown:
+				{
+					return
 				}
 			}
-		}()
-	}
-	return &Store{FM: fm, rop: rop, wop: wop, shutdown: shutdown}, nil
+		}
+	}()
+	return &Store{
+		FM:       fm,
+		rop:      rop,
+		wop:      wop,
+		shutdown: shutdown,
+		kvop:     newOpsObjectPool(),
+		sequence: constant.Sequence,
+	}, nil
 }
 
 func (s *Store) Get(k []byte) ([]byte, error) {
@@ -88,14 +95,13 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 		h := md5.New()
 		k = []byte(hex.EncodeToString(h.Sum(k)))
 	}
-	if sequence {
-		r := &ROps{
-			kv:   &KV{K: k},
-			resp: make(chan bool),
-		}
+	if s.sequence {
+		r := s.kvop.get()
+		r.kv.k = k
+		defer s.kvop.put(r)
 		s.rop <- r
 		<-r.resp
-		return r.kv.V, r.kv.Err
+		return r.kv.v, r.kv.err
 	}
 	return s.FM.Read(k)
 }
@@ -105,14 +111,14 @@ func (s *Store) Put(k, v []byte) error {
 		h := md5.New()
 		k = []byte(hex.EncodeToString(h.Sum(k)))
 	}
-	if sequence {
-		w := &WOps{
-			kv:   &KV{K: k, V: v},
-			resp: make(chan bool),
-		}
+	if s.sequence {
+		w := s.kvop.get()
+		w.kv.k = k
+		w.kv.v = v
+		defer s.kvop.put(w)
 		s.wop <- w
 		<-w.resp
-		return w.kv.Err
+		return w.kv.err
 	}
 	return s.FM.Write(k, v)
 }
@@ -122,15 +128,38 @@ func (s *Store) Delete(k []byte) error {
 	if err != nil {
 		return err
 	}
-	return s.Put(k, []byte(appendfile.DeleteFlag))
-}
-
-// 用于数据文件同步
-func (s *Store) WriteRaw(d []byte) error {
-	return s.FM.WriteRaw(d)
+	return s.Put(k, []byte(constant.DeleteFlag))
 }
 
 func (s *Store) Close() {
-	s.shutdown <- true
+	if s.sequence {
+		s.shutdown <- true
+	}
 	s.FM.Close()
+}
+
+func newOpsObjectPool() *kvObjectPool {
+	pool := &sync.Pool{New: func() interface{} {
+		return &ops{
+			kv: &kv{
+				k:   nil,
+				v:   nil,
+				err: nil,
+			},
+			resp: make(chan bool),
+		}
+	}}
+	return &kvObjectPool{pool: pool}
+}
+
+func (k *kvObjectPool) get() *ops {
+	v := k.pool.Get()
+	return v.(*ops)
+}
+
+func (k *kvObjectPool) put(o *ops) {
+	o.kv.k = nil
+	o.kv.v = nil
+	o.kv.err = nil
+	k.pool.Put(o)
 }

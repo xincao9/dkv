@@ -2,9 +2,9 @@ package oss
 
 import (
 	"crypto/md5"
+	"dkv/constant"
 	"dkv/logger"
 	"dkv/store"
-	"dkv/store/appendfile"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -25,7 +25,7 @@ func Route(engine *gin.Engine) {
 			c.Data(http.StatusOK, http.DetectContentType(val), val)
 			return
 		}
-		if err == appendfile.KeyNotFound {
+		if err == constant.KeyNotFound {
 			c.Writer.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -68,7 +68,7 @@ func Route(engine *gin.Engine) {
 			h.Write(val)
 			key := []byte(hex.EncodeToString(h.Sum(nil)))
 			_, err = store.D.Get(key)
-			if err == appendfile.KeyNotFound {
+			if err == constant.KeyNotFound {
 				err = store.D.Put(key, val)
 			}
 			if err != nil {

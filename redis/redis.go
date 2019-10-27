@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"dkv/config"
+	"dkv/constant"
 	"dkv/logger"
 	"dkv/store"
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 func run() {
-	addr := fmt.Sprintf(":%s", config.D.GetString("server.redis.port"))
+	addr := fmt.Sprintf(":%d", constant.RedisPort)
 	logger.D.Infof("Redis listening and serving HTTP on : %s", addr)
 	err := redcon.ListenAndServe(addr,
 		func(conn redcon.Conn, cmd redcon.Command) {

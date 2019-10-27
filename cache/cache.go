@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"dkv/config"
+	"dkv/constant"
 	"github.com/VictoriaMetrics/fastcache"
 	"path/filepath"
 )
@@ -12,8 +12,8 @@ var (
 )
 
 func init() {
-	C = fastcache.LoadFromFileOrNew(filepath.Join(config.D.GetString("data.dir"), "cache"), 1<<30)
-	open = config.D.GetBool("data.cache")
+	C = fastcache.LoadFromFileOrNew(filepath.Join(constant.Dir, "cache"), 1<<30)
+	open = constant.Cache
 }
 
 func Get(key []byte) []byte {
@@ -38,5 +38,5 @@ func Del(key []byte) {
 }
 
 func Close() {
-	C.SaveToFile(filepath.Join(config.D.GetString("data.dir"), "cache"))
+	C.SaveToFile(filepath.Join(constant.Dir, "cache"))
 }
