@@ -3,6 +3,7 @@
 **A Log-Structured Hash Table for Fast Key/Value Data** 
 
 [![CodeFactor](https://www.codefactor.io/repository/github/xincao9/dkv/badge)](https://www.codefactor.io/repository/github/xincao9/dkv)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e062787e83ab41c387e567f5210d4cc4)](https://www.codacy.com/manual/xincao9/dkv?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xincao9/dkv&amp;utm_campaign=Badge_Grade)
 
 ![logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 
