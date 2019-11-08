@@ -47,11 +47,11 @@ func main() {
 	gin.SetMode(config.D.GetString("server.mode"))
 	engine := gin.New()
 	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{Output: logger.D.WriterLevel(logrus.DebugLevel)}), gin.RecoveryWithWriter(logger.D.WriterLevel(logrus.ErrorLevel)))
-	kv.Route(engine)      // 注册KV服务接口
-	oss.Route(engine)     // 注册OSS服务接口
-	metrics.Route(engine) // 注册普罗米修斯接口
-	pprof.Wrap(engine)    // 注册pprof接口
-	config.Route(engine)  // 配置服务接口
+	kv.Route(engine)     // 注册KV服务接口
+	oss.Route(engine)    // 注册OSS服务接口
+	metrics.Use(engine)  // 注册普罗米修斯接口
+	pprof.Wrap(engine)   // 注册pprof接口
+	config.Route(engine) // 配置服务接口
 	redis.ListenAndServe()
 	addr := fmt.Sprintf(":%s", config.D.GetString("server.port"))
 	logger.D.Infof("Listening and serving HTTP on : %s", addr)
