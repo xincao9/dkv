@@ -1,4 +1,4 @@
-package client
+package ms
 
 import (
 	"bytes"
@@ -123,7 +123,6 @@ func (c *client) GetRealtime(key string) (*Result, error) {
 }
 
 func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
-	startTime := time.Now()
 	if key == "" {
 		return nil, errors.New("key not empty")
 	}
@@ -140,7 +139,7 @@ func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 		return nil, err
 	}
 	if realtime == false {
-		defer balancer.D.Add(uri, uint64(time.Since(startTime).Nanoseconds()/1e6))
+		defer balancer.D.Increment()
 	}
 	defer response.Body.Close()
 	return parseResponse(response)

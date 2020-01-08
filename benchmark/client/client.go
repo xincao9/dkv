@@ -1,11 +1,11 @@
 package client
 
 import (
-	"dkv/client"
-	"log"
-	"math/rand"
-	"strconv"
-	"time"
+    "dkv/client/ms"
+    "log"
+    "math/rand"
+    "strconv"
+    "time"
 )
 
 const maxRequestCount = 1000000
@@ -13,7 +13,7 @@ const maxRequestCount = 1000000
 var doc = make([]byte, 1024)
 
 func Benchmark() {
-	cli, err := client.NewMS("localhost:8090", []string{"localhost:8091"}, time.Second)
+	cli, err := ms.NewMS("localhost:8090", []string{"localhost:8091"}, time.Second)
 	if err != nil {
 		log.Fatalln(err)
 	}

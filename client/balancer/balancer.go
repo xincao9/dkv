@@ -1,8 +1,6 @@
 package balancer
 
 import (
-	"math"
-	"sync"
 	"sync/atomic"
 )
 
@@ -15,44 +13,24 @@ func init() {
 }
 
 type balancer struct {
-	ct *sync.Map
+	nodes   []string
+	counter uint64
+	l       uint64
 }
 
 func New() *balancer {
-	return &balancer{ct: &sync.Map{}}
+	return &balancer{nodes: make([]string, 0, 10)}
 }
 
 func (lb *balancer) Register(node string) {
-	c := uint64(0)
-	lb.ct.Store(node, &c)
+	lb.nodes = append(lb.nodes, node)
+	lb.l = uint64(len(lb.nodes))
 }
 
-func (lb *balancer) Add(node string, v uint64) {
-	val, ok := lb.ct.Load(node)
-	if ok == false {
-		return
-	}
-	c, _ := val.(*uint64)
-	n := atomic.AddUint64(c, v)
-	if n >= math.MaxUint64 {
-		lb.ct.Range(func(key, value interface{}) bool {
-			rn, _ := key.(string)
-			lb.Register(rn)
-			return true
-		})
-	}
+func (lb *balancer) Increment() {
+	atomic.AddUint64(&lb.counter, 1)
 }
 
 func (lb *balancer) Choose() string {
-	min := uint64(math.MaxUint64)
-	cn := ""
-	lb.ct.Range(func(key, value interface{}) bool {
-		c, _ := value.(uint64)
-		if c < min {
-			min = c
-			cn, _ = key.(string)
-		}
-		return true
-	})
-	return cn
+	return lb.nodes[lb.counter%lb.l]
 }
