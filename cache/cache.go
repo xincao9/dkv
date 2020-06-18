@@ -7,36 +7,49 @@ import (
 )
 
 var (
-	C    *fastcache.Cache
-	open bool
+	C *cache
 )
 
 func init() {
-	C = fastcache.LoadFromFileOrNew(filepath.Join(constant.Dir, "cache"), 1<<30)
-	open = constant.Cache
+	C = new(filepath.Join(constant.Dir, "cache"), constant.Cache)
 }
 
-func Get(key []byte) []byte {
-	if open == false {
+type cache struct {
+	c    *fastcache.Cache
+	open bool
+}
+
+func new(file string, open bool) *cache {
+	fc := fastcache.LoadFromFileOrNew(file, 1<<30)
+	return &cache{
+		c:    fc,
+		open: open,
+	}
+}
+func (c *cache) Get(key []byte) []byte {
+	if c.open == false {
 		return nil
 	}
-	return C.Get(nil, key)
+	return c.c.Get(nil, key)
 }
 
-func Set(key []byte, val []byte) {
-	if open == false {
+func (c *cache) Set(key []byte, val []byte) {
+	if c.open == false {
 		return
 	}
-	C.Set(key, val)
+	c.c.Set(key, val)
 }
 
-func Del(key []byte) {
-	if open == false {
+func (c *cache) Del(key []byte) {
+	if c.open == false {
 		return
 	}
-	C.Del(key)
+	c.c.Del(key)
 }
 
-func Close() {
-	C.SaveToFile(filepath.Join(constant.Dir, "cache"))
+func (c *cache) Close() {
+	if c.open == false {
+		return
+	}
+	c.c.SaveToFile(filepath.Join(constant.Dir, "cache"))
 }

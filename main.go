@@ -11,7 +11,6 @@ import (
 	"dkv/redis"
 	"dkv/store"
 	_ "dkv/store/synchronous"
-	"dkv/ui"
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -42,7 +41,7 @@ func init() {
 func main() {
 	// 启动存储引擎
 	defer store.D.Close()
-	defer cache.Close()
+	defer cache.C.Close()
 
 	// 启动http服务
 	gin.SetMode(config.D.GetString("server.mode"))
@@ -53,7 +52,6 @@ func main() {
 	metrics.Use(engine)  // 注册普罗米修斯接口
 	pprof.Wrap(engine)   // 注册pprof接口
 	config.Route(engine) // 配置服务接口
-	ui.Route(engine)     // UI接口
 	redis.ListenAndServe()
 	addr := fmt.Sprintf(":%s", config.D.GetString("server.port"))
 	logger.D.Infof("Listening and serving HTTP on : %s", addr)

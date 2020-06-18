@@ -5,25 +5,35 @@ import (
 	"github.com/golang/snappy"
 )
 
-func Encode(d []byte) []byte {
-	if constant.Compress == false {
-		return d
-	}
-	return snappyEncode(d)
+var (
+	C *compress
+)
+
+func init() {
+	C = new(constant.Compress)
 }
 
-func Decode(d []byte) []byte {
-	if constant.Compress == false {
-		return d
+func new(open bool) *compress {
+	return &compress{
+		open: open,
 	}
-	return snappyDecode(d)
 }
 
-func snappyEncode(d []byte) []byte {
+type compress struct {
+	open bool
+}
+
+func (c *compress) Encode(d []byte) []byte {
+	if c.open == false {
+		return d
+	}
 	return snappy.Encode(nil, d)
 }
 
-func snappyDecode(d []byte) []byte {
+func (c *compress) Decode(d []byte) []byte {
+	if c.open == false {
+		return d
+	}
 	v, err := snappy.Decode(nil, d)
 	if err != nil {
 		return d
