@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	D *balancer
+	B *balancer
 )
 
 func init() {
-	D = New()
+	B = New()
 }
 
 type balancer struct {

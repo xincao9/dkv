@@ -15,6 +15,7 @@ func init() {
 }
 
 type cache struct {
+	file string
 	c    *fastcache.Cache
 	open bool
 }
@@ -22,6 +23,7 @@ type cache struct {
 func new(file string, open bool) *cache {
 	fc := fastcache.LoadFromFileOrNew(file, 1<<30)
 	return &cache{
+		file: file,
 		c:    fc,
 		open: open,
 	}
@@ -51,5 +53,5 @@ func (c *cache) Close() {
 	if c.open == false {
 		return
 	}
-	c.c.SaveToFile(filepath.Join(constant.Dir, "cache"))
+	c.c.SaveToFile(c.file)
 }
