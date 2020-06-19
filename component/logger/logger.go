@@ -1,11 +1,19 @@
 package logger
 
 import (
-    "dkv/component/constant"
-    "github.com/natefinch/lumberjack"
-    "github.com/sirupsen/logrus"
-    "log"
-    "path/filepath"
+	"dkv/component/constant"
+	"github.com/natefinch/lumberjack"
+	"github.com/sirupsen/logrus"
+	"log"
+	"path/filepath"
+)
+
+const (
+	maxSize    = 500
+	maxBackups = 3
+	maxAge     = 28
+	compress   = true
+	file       = "server.log"
 )
 
 var (
@@ -19,13 +27,13 @@ func init() {
 	if err != nil {
 		log.Fatalf("Fatal error logger : %v\n", err)
 	}
-	fn := filepath.Join(constant.Dir, "server.log")
+	fn := filepath.Join(constant.Dir, file)
 	L.Out = &lumberjack.Logger{
 		Filename:   fn,
-		MaxSize:    500,
-		MaxBackups: 3,
-		MaxAge:     28,
-		Compress:   true,
+		MaxSize:    maxSize,
+		MaxBackups: maxBackups,
+		MaxAge:     maxAge,
+		Compress:   compress,
 	}
 	L.SetLevel(level)
 	L.Formatter = &logrus.JSONFormatter{}

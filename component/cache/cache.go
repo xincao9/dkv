@@ -1,9 +1,14 @@
 package cache
 
 import (
-    "dkv/component/constant"
+	"dkv/component/constant"
 	"github.com/VictoriaMetrics/fastcache"
 	"path/filepath"
+)
+
+const (
+	fn       = "cache"
+	maxBytes = 1 << 30
 )
 
 var (
@@ -11,21 +16,23 @@ var (
 )
 
 func init() {
-	C = new(filepath.Join(constant.Dir, "cache"), constant.Cache)
+	C = new(filepath.Join(constant.Dir, fn), constant.Cache, maxBytes)
 }
 
 type cache struct {
-	file string
-	c    *fastcache.Cache
-	open bool
+	file     string
+	c        *fastcache.Cache
+	open     bool
+	maxBytes int
 }
 
-func new(file string, open bool) *cache {
-	fc := fastcache.LoadFromFileOrNew(file, 1<<30)
+func new(file string, open bool, maxBytes int) *cache {
+	fc := fastcache.LoadFromFileOrNew(file, maxBytes)
 	return &cache{
-		file: file,
-		c:    fc,
-		open: open,
+		file:     file,
+		c:        fc,
+		open:     open,
+		maxBytes: maxBytes,
 	}
 }
 func (c *cache) Get(key []byte) []byte {
