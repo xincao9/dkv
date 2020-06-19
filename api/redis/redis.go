@@ -11,7 +11,7 @@ import (
 
 func run() {
 	addr := fmt.Sprintf(":%d", constant.RedisPort)
-	logger.L.Infof("Redis listening and serving HTTP on : %s", addr)
+	logger.L.Infof("Redis listening and serving on : %s", addr)
 	err := redcon.ListenAndServe(addr,
 		func(conn redcon.Conn, cmd redcon.Command) {
 			switch strings.ToLower(string(cmd.Args[0])) {
