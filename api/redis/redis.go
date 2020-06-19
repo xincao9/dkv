@@ -1,8 +1,8 @@
 package redis
 
 import (
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "dkv/store"
     "fmt"
     "github.com/tidwall/redcon"

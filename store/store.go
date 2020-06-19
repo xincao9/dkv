@@ -2,8 +2,8 @@ package store
 
 import (
     "crypto/md5"
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "dkv/store/appendfile"
     "encoding/hex"
     "math"

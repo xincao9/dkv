@@ -1,8 +1,8 @@
 package synchronous
 
 import (
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "dkv/store"
     "dkv/store/meta"
     "fmt"

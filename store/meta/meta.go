@@ -1,8 +1,8 @@
 package meta
 
 import (
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "encoding/json"
     "io/ioutil"
     "os"

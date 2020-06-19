@@ -1,11 +1,11 @@
 package logger
 
 import (
-    "dkv/config"
-	"github.com/natefinch/lumberjack"
-	"github.com/sirupsen/logrus"
-	"log"
-	"path/filepath"
+    "dkv/component/constant"
+    "github.com/natefinch/lumberjack"
+    "github.com/sirupsen/logrus"
+    "log"
+    "path/filepath"
 )
 
 var (
@@ -15,11 +15,11 @@ var (
 func init() {
 	// 日志设置
 	L = logrus.New()
-	level, err := logrus.ParseLevel(config.C.GetString("logger.level"))
+	level, err := logrus.ParseLevel(constant.LoggerLevel)
 	if err != nil {
 		log.Fatalf("Fatal error logger : %v\n", err)
 	}
-	fn := filepath.Join(config.C.GetString("data.dir"), "server.log")
+	fn := filepath.Join(constant.Dir, "server.log")
 	L.Out = &lumberjack.Logger{
 		Filename:   fn,
 		MaxSize:    500,

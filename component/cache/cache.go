@@ -1,7 +1,7 @@
 package cache
 
 import (
-    "dkv/constant"
+    "dkv/component/constant"
 	"github.com/VictoriaMetrics/fastcache"
 	"path/filepath"
 )

@@ -2,9 +2,9 @@ package appendfile
 
 import (
     "bytes"
+    "dkv/component/constant"
     "dkv/component/logger"
     "dkv/component/metrics"
-    "dkv/constant"
     "dkv/store/meta"
     "fmt"
     "io"

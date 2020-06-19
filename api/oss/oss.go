@@ -2,8 +2,8 @@ package oss
 
 import (
     "crypto/md5"
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "dkv/store"
     "encoding/hex"
     "github.com/gin-gonic/gin"

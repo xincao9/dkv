@@ -2,7 +2,7 @@ GOPATH:=$(shell go env GOPATH)
 
 test:
 	mkdir -p  $(HOME)/.dkv
-	cp resource/config.yaml $(HOME)/.dkv
+	cp resource/conf/config.yaml $(HOME)/.dkv
 	go test -v ./... -cover
 	rm $(HOME)/.dkv/config.yaml
 

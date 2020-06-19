@@ -1,8 +1,8 @@
 package appendfile
 
 import (
+    "dkv/component/constant"
     "dkv/component/logger"
-    "dkv/constant"
     "fmt"
     "os"
     "path/filepath"

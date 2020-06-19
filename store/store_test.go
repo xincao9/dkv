@@ -1,7 +1,7 @@
 package store
 
 import (
-    "dkv/constant"
+    "dkv/component/constant"
     "os"
     "strconv"
     "testing"
