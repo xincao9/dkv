@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"dkv/config"
+    "dkv/config"
 	"github.com/natefinch/lumberjack"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -9,26 +9,26 @@ import (
 )
 
 var (
-	D *logrus.Logger
+	L *logrus.Logger
 )
 
 func init() {
 	// 日志设置
-	D = logrus.New()
-	level, err := logrus.ParseLevel(config.D.GetString("logger.level"))
+	L = logrus.New()
+	level, err := logrus.ParseLevel(config.C.GetString("logger.level"))
 	if err != nil {
 		log.Fatalf("Fatal error logger : %v\n", err)
 	}
-	fn := filepath.Join(config.D.GetString("data.dir"), "server.log")
-	D.Out = &lumberjack.Logger{
+	fn := filepath.Join(config.C.GetString("data.dir"), "server.log")
+	L.Out = &lumberjack.Logger{
 		Filename:   fn,
 		MaxSize:    500,
 		MaxBackups: 3,
 		MaxAge:     28,
 		Compress:   true,
 	}
-	D.SetLevel(level)
-	D.Formatter = &logrus.JSONFormatter{}
+	L.SetLevel(level)
+	L.Formatter = &logrus.JSONFormatter{}
 	log.SetFlags(log.LstdFlags | log.Llongfile)
-	log.SetOutput(D.WriterLevel(logrus.InfoLevel))
+	log.SetOutput(L.WriterLevel(logrus.InfoLevel))
 }

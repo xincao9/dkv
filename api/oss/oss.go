@@ -1,14 +1,14 @@
 package oss
 
 import (
-	"crypto/md5"
-	"dkv/constant"
-	"dkv/logger"
-	"dkv/store"
-	"encoding/hex"
-	"github.com/gin-gonic/gin"
-	"io/ioutil"
-	"net/http"
+    "crypto/md5"
+    "dkv/component/logger"
+    "dkv/constant"
+    "dkv/store"
+    "encoding/hex"
+    "github.com/gin-gonic/gin"
+    "io/ioutil"
+    "net/http"
 )
 
 func Route(engine *gin.Engine) {
@@ -20,7 +20,7 @@ func Route(engine *gin.Engine) {
 			c.Writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		val, err := store.D.Get([]byte(oid))
+		val, err := store.S.Get([]byte(oid))
 		if err == nil {
 			c.Data(http.StatusOK, http.DetectContentType(val), val)
 			return
@@ -29,7 +29,7 @@ func Route(engine *gin.Engine) {
 			c.Writer.WriteHeader(http.StatusNotFound)
 			return
 		}
-		logger.D.Errorf("oid = %s, err = %v\n", oid, err)
+		logger.L.Errorf("oid = %s, err = %v\n", oid, err)
 		c.Writer.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -55,25 +55,25 @@ func Route(engine *gin.Engine) {
 			items[i].Status = true
 			if err != nil {
 				items[i].Status = false
-				logger.D.Error(err)
+				logger.L.Error(err)
 				continue
 			}
 			val, err := ioutil.ReadAll(f)
 			if err != nil {
 				items[i].Status = false
-				logger.D.Error(err)
+				logger.L.Error(err)
 				continue
 			}
 			h := md5.New()
 			h.Write(val)
 			key := []byte(hex.EncodeToString(h.Sum(nil)))
-			_, err = store.D.Get(key)
+			_, err = store.S.Get(key)
 			if err == constant.KeyNotFound {
-				err = store.D.Put(key, val)
+				err = store.S.Put(key, val)
 			}
 			if err != nil {
 				items[i].Status = false
-				logger.D.Error(err)
+				logger.L.Error(err)
 				continue
 			}
 			items[i].Oid = string(key)

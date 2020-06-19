@@ -1,14 +1,14 @@
 package kv
 
 import (
-	"dkv/cache"
-	"dkv/compress"
-	"dkv/constant"
-	"dkv/logger"
-	"dkv/metrics"
-	"dkv/store"
-	"github.com/gin-gonic/gin"
-	"net/http"
+    "dkv/component/cache"
+    "dkv/component/compress"
+    "dkv/component/logger"
+    "dkv/component/metrics"
+    "dkv/constant"
+    "dkv/store"
+    "github.com/gin-gonic/gin"
+    "net/http"
 )
 
 type KV struct {
@@ -31,7 +31,7 @@ func Route(engine *gin.Engine) {
 			metrics.GetCount.WithLabelValues("success", "memory").Inc()
 			return
 		}
-		val, err := store.D.Get([]byte(key))
+		val, err := store.S.Get([]byte(key))
 		if err == nil {
 			cache.C.Set([]byte(key), val)
 			val = compress.C.Decode(val)
@@ -44,7 +44,7 @@ func Route(engine *gin.Engine) {
 			metrics.GetCount.WithLabelValues("failure", "not_found").Inc()
 			return
 		}
-		logger.D.Errorf("method:get path:/kv/%s err=%s\n", key, err)
+		logger.L.Errorf("method:get path:/kv/%s err=%s\n", key, err)
 		response(c, http.StatusInternalServerError, "服务端错误")
 		metrics.GetCount.WithLabelValues("failure", "server_error").Inc()
 	})
@@ -56,9 +56,9 @@ func Route(engine *gin.Engine) {
 			return
 		}
 		val := compress.C.Encode([]byte(kv.V))
-		err := store.D.Put([]byte(kv.K), val)
+		err := store.S.Put([]byte(kv.K), val)
 		if err != nil {
-			logger.D.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
+			logger.L.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
 			response(c, http.StatusInternalServerError, "服务端错误")
 			metrics.PutCount.WithLabelValues("failure").Inc()
 			return
@@ -73,7 +73,7 @@ func Route(engine *gin.Engine) {
 			response(c, http.StatusBadRequest, "参数错误")
 			return
 		}
-		err := store.D.Delete([]byte(key))
+		err := store.S.Delete([]byte(key))
 		if err == nil {
 			cache.C.Del([]byte(key))
 			response(c, http.StatusOK, "成功")
@@ -83,7 +83,7 @@ func Route(engine *gin.Engine) {
 			response(c, http.StatusOK, "没有找到")
 			return
 		}
-		logger.D.Errorf("method:delete path:/kv/%s err=%s\n", key, err)
+		logger.L.Errorf("method:delete path:/kv/%s err=%s\n", key, err)
 		response(c, http.StatusInternalServerError, "服务端错误")
 	})
 }

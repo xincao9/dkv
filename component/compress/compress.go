@@ -1,7 +1,7 @@
 package compress
 
 import (
-	"dkv/constant"
+    "dkv/constant"
 	"github.com/golang/snappy"
 )
 

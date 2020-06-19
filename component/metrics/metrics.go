@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"github.com/gin-gonic/gin"
+    "github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/zsais/go-gin-prometheus"
 )

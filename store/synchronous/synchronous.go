@@ -1,19 +1,19 @@
 package synchronous
 
 import (
-	"dkv/constant"
-	"dkv/logger"
-	"dkv/store"
-	"dkv/store/meta"
-	"fmt"
-	"io"
-	"net"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
+    "dkv/component/logger"
+    "dkv/constant"
+    "dkv/store"
+    "dkv/store/meta"
+    "fmt"
+    "io"
+    "net"
+    "os"
+    "path/filepath"
+    "strconv"
+    "strings"
+    "sync"
+    "time"
 )
 
 type Synchronous struct {
@@ -29,7 +29,7 @@ func init() {
 	var err error
 	D, err = New()
 	if err != nil {
-		logger.D.Fatalf("Fatal error synchronous: %v\n", err)
+		logger.L.Fatalf("Fatal error synchronous: %v\n", err)
 	}
 }
 
@@ -46,18 +46,18 @@ func New() (*Synchronous, error) {
 		if err != nil {
 			return nil, err
 		}
-		logger.D.Infof("Synchronous new listen port: %s\n", addr)
+		logger.L.Infof("Synchronous new listen port: %s\n", addr)
 		go func() {
 			for {
 				conn, err := ln.Accept()
 				if err != nil {
-					logger.D.Errorf("Synchronous new accept: %v\n", err)
+					logger.L.Errorf("Synchronous new accept: %v\n", err)
 					continue
 				}
 				go func(c net.Conn) {
 					i := strings.LastIndex(c.RemoteAddr().String(), ":")
 					host := string([]byte(c.RemoteAddr().String())[:i])
-					logger.D.Infof("Synchronous new handler host: %s\n", host)
+					logger.L.Infof("Synchronous new handler host: %s\n", host)
 					s.connections.Store(host, conn)
 					state := true
 					for state {
@@ -78,7 +78,7 @@ func New() (*Synchronous, error) {
 		return nil, err
 	}
 	go func(c net.Conn) {
-		logger.D.Infof("Synchronous new connection addr: %s\n", addr)
+		logger.L.Infof("Synchronous new connection addr: %s\n", addr)
 		b := make([]byte, 1024)
 		for {
 			n, err := c.Read(b)
@@ -87,15 +87,15 @@ func New() (*Synchronous, error) {
 				if ok && netErr.Timeout() {
 					continue
 				}
-				logger.D.Errorf("Synchronous new read: %v\n", err)
+				logger.L.Errorf("Synchronous new read: %v\n", err)
 				break
 			}
-			err = store.D.FM.WriteRaw(b[:n])
+			err = store.S.FM.WriteRaw(b[:n])
 			if err != nil {
-				logger.D.Errorf("Synchronous new store write : %v\n", err)
+				logger.L.Errorf("Synchronous new store write : %v\n", err)
 			}
 		}
-		logger.D.Infof("Synchronous new close connection addr: %s\n", addr)
+		logger.L.Infof("Synchronous new close connection addr: %s\n", addr)
 		c.Close()
 	}(conn)
 	return s, nil
@@ -104,13 +104,13 @@ func New() (*Synchronous, error) {
 func (s *Synchronous) handler(host string) {
 	c, _ := s.connections.Load(host)
 	conn := c.(net.Conn)
-	sI, state := meta.D.GetSalveInfoByHost(host)
+	sI, state := meta.M.GetSalveInfoByHost(host)
 	var cFid, cOff int64
 	if state {
 		cFid = sI.Fid
 		cOff = sI.Off
 	}
-	fids := meta.D.GetFids()
+	fids := meta.M.GetFids()
 	for _, fid := range fids {
 		fn := filepath.Join(constant.Dir, strconv.FormatInt(fid, 10))
 		if fid < cFid {
@@ -124,7 +124,7 @@ func (s *Synchronous) handler(host string) {
 		}
 		fo, err := os.OpenFile(fn, os.O_RDONLY, 0644)
 		if err != nil {
-			logger.D.Errorf("Synchronous handler openfile fn: %s, err: %v\n", fn, err)
+			logger.L.Errorf("Synchronous handler openfile fn: %s, err: %v\n", fn, err)
 			continue
 		}
 		fi, err := fo.Stat()
@@ -142,18 +142,18 @@ func (s *Synchronous) handler(host string) {
 				cOff = cOff + int64(n)
 				_, err = conn.Write(b[:n])
 				if err != nil {
-					logger.D.Errorf("Synchronous handler connection write fn = %s, err = %v\n", fn, err)
+					logger.L.Errorf("Synchronous handler connection write fn = %s, err = %v\n", fn, err)
 					s.close(host)
 				}
 			}
 			if err == io.EOF {
-				meta.D.SaveSlaveInfo(host, cFid, cOff)
-				logger.D.Infof("Synchronous handler write fn = %s finish\n", fn)
+				meta.M.SaveSlaveInfo(host, cFid, cOff)
+				logger.L.Infof("Synchronous handler write fn = %s finish\n", fn)
 				fo.Close()
 				break
 			} else if err != nil {
-				meta.D.SaveSlaveInfo(host, cFid, cOff)
-				logger.D.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
+				meta.M.SaveSlaveInfo(host, cFid, cOff)
+				logger.L.Errorf("Synchronous handler read fn = %s, err = %v\n", fn, err)
 				fo.Close()
 				break
 			}

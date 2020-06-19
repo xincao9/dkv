@@ -1,22 +1,22 @@
 package meta
 
 import (
-	"dkv/constant"
-	"dkv/logger"
-	"encoding/json"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"sort"
+    "dkv/component/logger"
+    "dkv/constant"
+    "encoding/json"
+    "io/ioutil"
+    "os"
+    "path/filepath"
+    "sort"
 )
 
-var D *meta
+var M *meta
 
 func init() {
 	var err error
-	D, err = New()
+	M, err = New()
 	if err != nil {
-		logger.D.Fatalf("Fatal error meta: %v\n", err)
+		logger.L.Fatalf("Fatal error meta: %v\n", err)
 	}
 }
 
