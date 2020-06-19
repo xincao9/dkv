@@ -25,6 +25,7 @@ type Result struct {
 
 var (
 	ErrAddrNotEmpty = errors.New("addr not empty")
+	KeyNotEmpty     = errors.New("key not empty")
 )
 
 type client struct {
@@ -75,11 +76,11 @@ func NewMSClient(master string, slaves []string, timeout time.Duration, idleConn
 	var uris []string
 	for _, slave := range slaves {
 		slaveUri := fmt.Sprintf("%s%s/kv", proto, slave)
-		balancer.D.Register(slaveUri)
+		balancer.B.Register(slaveUri)
 		uris = append(uris, slaveUri)
 	}
 	masterUri := fmt.Sprintf("%s%s/kv", proto, master)
-	balancer.D.Register(masterUri)
+	balancer.B.Register(masterUri)
 	uris = append(uris, masterUri)
 	return &client{c: c, masterUri: masterUri, uris: uris}, nil
 }
@@ -94,7 +95,7 @@ func NewMS(master string, slaves []string, timeout time.Duration) (*client, erro
 
 func (c *client) Put(key, value string) (*Result, error) {
 	if key == "" {
-		return nil, errors.New("key not empty")
+		return nil, KeyNotEmpty
 	}
 	kv := &KV{K: key, V: value}
 	body, err := json.Marshal(kv)
@@ -128,7 +129,7 @@ func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 	}
 	uri := c.masterUri
 	if realtime == false {
-		uri = balancer.D.Choose()
+		uri = balancer.B.Choose()
 	}
 	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", uri, key), nil)
 	if err != nil {
@@ -139,7 +140,7 @@ func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 		return nil, err
 	}
 	if realtime == false {
-		defer balancer.D.Increment()
+		defer balancer.B.Increment()
 	}
 	defer response.Body.Close()
 	return parseResponse(response)

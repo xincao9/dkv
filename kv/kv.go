@@ -24,17 +24,17 @@ func Route(engine *gin.Engine) {
 			metrics.GetCount.WithLabelValues("failure", "bad_request").Inc()
 			return
 		}
-		val := cache.Get([]byte(key))
+		val := cache.C.Get([]byte(key))
 		if val != nil {
-			val = compress.Decode(val)
+			val = compress.C.Decode(val)
 			responseKV(c, http.StatusOK, "成功", &KV{K: key, V: string(val)})
 			metrics.GetCount.WithLabelValues("success", "memory").Inc()
 			return
 		}
 		val, err := store.D.Get([]byte(key))
 		if err == nil {
-			cache.Set([]byte(key), val)
-			val = compress.Decode(val)
+			cache.C.Set([]byte(key), val)
+			val = compress.C.Decode(val)
 			responseKV(c, http.StatusOK, "成功", &KV{K: key, V: string(val)})
 			metrics.GetCount.WithLabelValues("success", "disk").Inc()
 			return
@@ -55,7 +55,7 @@ func Route(engine *gin.Engine) {
 			metrics.PutCount.WithLabelValues("failure").Inc()
 			return
 		}
-		val := compress.Encode([]byte(kv.V))
+		val := compress.C.Encode([]byte(kv.V))
 		err := store.D.Put([]byte(kv.K), val)
 		if err != nil {
 			logger.D.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
@@ -63,7 +63,7 @@ func Route(engine *gin.Engine) {
 			metrics.PutCount.WithLabelValues("failure").Inc()
 			return
 		}
-		cache.Del([]byte(kv.K))
+		cache.C.Del([]byte(kv.K))
 		response(c, http.StatusOK, "成功")
 		metrics.PutCount.WithLabelValues("success").Inc()
 	})
@@ -75,7 +75,7 @@ func Route(engine *gin.Engine) {
 		}
 		err := store.D.Delete([]byte(key))
 		if err == nil {
-			cache.Del([]byte(key))
+			cache.C.Del([]byte(key))
 			response(c, http.StatusOK, "成功")
 			return
 		}

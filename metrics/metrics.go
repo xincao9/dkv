@@ -3,7 +3,7 @@ package metrics
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-    "github.com/zsais/go-gin-prometheus"
+	"github.com/zsais/go-gin-prometheus"
 )
 
 var (
@@ -30,6 +30,6 @@ func init() {
 }
 
 func Use(engine *gin.Engine) {
-    p := ginprometheus.NewPrometheus("dkv")
-    p.Use(engine)
+	p := ginprometheus.NewPrometheus("dkv")
+	p.Use(engine)
 }
