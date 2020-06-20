@@ -1,8 +1,8 @@
 package meta
 
 import (
-    "dkv/component/constant"
-    "os"
+	"dkv/component/constant"
+	"os"
 	"testing"
 	"time"
 )

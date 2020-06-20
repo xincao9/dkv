@@ -1,19 +1,19 @@
 package synchronous
 
 import (
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "dkv/store"
-    "dkv/store/meta"
-    "fmt"
-    "io"
-    "net"
-    "os"
-    "path/filepath"
-    "strconv"
-    "strings"
-    "sync"
-    "time"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"dkv/store"
+	"dkv/store/meta"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 type Synchronous struct {
@@ -22,12 +22,12 @@ type Synchronous struct {
 }
 
 var (
-	D *Synchronous
+	S *Synchronous
 )
 
 func init() {
 	var err error
-	D, err = New()
+	S, err = New()
 	if err != nil {
 		logger.L.Fatalf("Fatal error synchronous: %v\n", err)
 	}

@@ -1,13 +1,13 @@
 package appendfile
 
 import (
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "fmt"
-    "os"
-    "path/filepath"
-    "strconv"
-    "sync"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
 )
 
 type appendFile struct {

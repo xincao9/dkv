@@ -1,7 +1,7 @@
 package appendfile
 
 import (
-    "dkv/component/constant"
+	"dkv/component/constant"
 	"errors"
 	"hash/crc32"
 	"math"

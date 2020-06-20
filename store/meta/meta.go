@@ -1,13 +1,13 @@
 package meta
 
 import (
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "encoding/json"
-    "io/ioutil"
-    "os"
-    "path/filepath"
-    "sort"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
 )
 
 var M *meta

@@ -1,7 +1,7 @@
 package appendfile
 
 import (
-    "dkv/component/constant"
+	"dkv/component/constant"
 	"os"
 	"testing"
 )

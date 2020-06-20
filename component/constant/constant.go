@@ -1,7 +1,7 @@
 package constant
 
 import (
-    "dkv/component/config"
+	"dkv/component/config"
 	"encoding/binary"
 	"errors"
 )

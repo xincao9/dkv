@@ -1,11 +1,11 @@
 package client
 
 import (
-    "dkv/client/ms"
-    "log"
-    "math/rand"
-    "strconv"
-    "time"
+	"dkv/client/ms"
+	"log"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
 const maxRequestCount = 1000000

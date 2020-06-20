@@ -1,12 +1,12 @@
 package redis
 
 import (
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "dkv/store"
-    "fmt"
-    "github.com/tidwall/redcon"
-    "strings"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"dkv/store"
+	"fmt"
+	"github.com/tidwall/redcon"
+	"strings"
 )
 
 func run() {

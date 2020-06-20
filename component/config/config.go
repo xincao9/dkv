@@ -1,12 +1,12 @@
 package config
 
 import (
-    "flag"
-    "github.com/gin-gonic/gin"
-    "github.com/spf13/viper"
-    "log"
-    "net/http"
-    "strings"
+	"flag"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
+	"log"
+	"net/http"
+	"strings"
 )
 
 var (
@@ -24,9 +24,10 @@ func init() {
 			*c = string([]byte(*c)[:i-1])
 		}
 	}
-    C.SetConfigName(*c)
+	C.SetConfigName(*c)
 	C.SetConfigType("yaml")
-	C.AddConfigPath("/tmp/dkv/conf")
+	C.AddConfigPath("./resource/conf")
+	C.AddConfigPath("/usr/local/dkv/conf")
 	C.SetDefault("data.dir", "/tmp/dkv/data")
 	C.SetDefault("data.invalidIndex", false)
 	C.SetDefault("data.compress", false)

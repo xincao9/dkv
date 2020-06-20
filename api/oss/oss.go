@@ -1,14 +1,14 @@
 package oss
 
 import (
-    "crypto/md5"
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "dkv/store"
-    "encoding/hex"
-    "github.com/gin-gonic/gin"
-    "io/ioutil"
-    "net/http"
+	"crypto/md5"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"dkv/store"
+	"encoding/hex"
+	"github.com/gin-gonic/gin"
+	"io/ioutil"
+	"net/http"
 )
 
 func Route(engine *gin.Engine) {

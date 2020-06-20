@@ -1,10 +1,10 @@
 package store
 
 import (
-    "dkv/component/constant"
-    "os"
-    "strconv"
-    "testing"
+	"dkv/component/constant"
+	"os"
+	"strconv"
+	"testing"
 )
 
 var doc = make([]byte, 1024)

@@ -1,7 +1,7 @@
 package balancer
 
 import (
-    "testing"
+	"testing"
 )
 
 func TestBalancer_Choose(t *testing.T) {
@@ -14,7 +14,7 @@ func TestBalancer_Choose(t *testing.T) {
 		nodes[node]++
 		B.Increment()
 	}
-    t.Logf("%v\n", nodes)
+	t.Logf("%v\n", nodes)
 }
 
 func BenchmarkBalancer_Choose(b *testing.B) {

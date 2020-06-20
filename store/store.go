@@ -1,13 +1,13 @@
 package store
 
 import (
-    "crypto/md5"
-    "dkv/component/constant"
-    "dkv/component/logger"
-    "dkv/store/appendfile"
-    "encoding/hex"
-    "math"
-    "sync"
+	"crypto/md5"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"dkv/store/appendfile"
+	"encoding/hex"
+	"math"
+	"sync"
 )
 
 var (
