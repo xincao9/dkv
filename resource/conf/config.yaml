@@ -1,5 +1,5 @@
 data:
-  dir: /tmp/dkv
+  dir: /tmp/dkv/data
   invalidIndex: false
   cache: true
   compress: false
