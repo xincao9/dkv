@@ -11,9 +11,9 @@ import (
 const (
 	maxSize    = 500
 	maxBackups = 3
-	maxAge     = 28
+	maxAge     = 7
 	compress   = true
-	file       = "server.log"
+	file       = "dkv.log"
 )
 
 var (
@@ -27,7 +27,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("Fatal error logger : %v\n", err)
 	}
-	fn := filepath.Join(constant.Dir, file)
+	fn := filepath.Join(constant.LoggerDir, file)
 	L.Out = &lumberjack.Logger{
 		Filename:   fn,
 		MaxSize:    maxSize,

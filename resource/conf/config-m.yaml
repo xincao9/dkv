@@ -2,6 +2,7 @@ data:
   dir: /usr/local/dkv/data/m
   invalidIndex: false
   cache: true
+    size: 1073741824
   compress: false
 server:
   mode: release
@@ -11,6 +12,7 @@ server:
     port: 5380
 logger:
   level: info
+  dir: /usr/local/dkv/log/m
 ms:
   role: 1
   m:

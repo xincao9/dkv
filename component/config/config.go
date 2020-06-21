@@ -32,11 +32,13 @@ func init() {
 	C.SetDefault("data.invalidIndex", false)
 	C.SetDefault("data.compress", false)
 	C.SetDefault("data.cache", true)
+	C.SetDefault("data.cache.size", 1<<30)
 	C.SetDefault("server.mode", "debug")
 	C.SetDefault("server.port", 9090)
 	C.SetDefault("server.redis.port", 6380)
 	C.SetDefault("server.sequence", true)
 	C.SetDefault("logger.level", "debug")
+	C.SetDefault("logger.dir", "/tmp/dkv/log")
 	C.SetDefault("ms.role", 0)                  // 0 默认模式，1 主节点 2 从节点
 	C.SetDefault("ms.m.port", 7380)             // 主节点监听端口
 	C.SetDefault("ms.s.addr", "localhost:7380") // 从同步的主节点地址

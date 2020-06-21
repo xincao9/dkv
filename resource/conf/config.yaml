@@ -2,6 +2,7 @@ data:
   dir: /tmp/dkv/data
   invalidIndex: false
   cache: true
+    size: 1073741824
   compress: false
 server:
   mode: debug
@@ -11,5 +12,6 @@ server:
     port: 6380
 logger:
   level: info
+  dir: /tmp/dkv/log
 ms:
   role: 0

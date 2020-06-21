@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	fn       = "cache"
-	maxBytes = 1 << 30
+	fn = "cache"
 )
 
 var (
@@ -16,7 +15,7 @@ var (
 )
 
 func init() {
-	C = new(filepath.Join(constant.Dir, fn), constant.Cache, maxBytes)
+	C = new(filepath.Join(constant.Dir, fn), constant.Cache, constant.CacheSize)
 }
 
 type cache struct {
