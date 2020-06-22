@@ -67,7 +67,10 @@ func (m *meta) Save() error {
 		return err
 	}
 	if ok == false {
-		os.Mkdir(constant.Dir, 0755)
+		err = os.MkdirAll(constant.Dir, 0755)
+		if err != nil {
+		    return err
+        }
 	}
 	return ioutil.WriteFile(fn, b, 0644)
 }
