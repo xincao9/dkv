@@ -33,18 +33,24 @@ Data directory: cd /usr/local/dkv/data
 
 ```
 data:
-  dir: /usr/local/dkv/data #data directory
-  invalidIndex: false #Whether to rebuild the index when starting
-  cache: true #Whether to enable caching
-  compress: false #Whether to enable compression
+    dir: /usr/local/dkv/data
+    invalidIndex: false
+    cache:
+        open: true
+        size: 1073741824
+    compress:
+        open: false
 server:
-  mode: release
-  port: :9090 #port
-  sequence: true
-  redcon:
-    port: 6380 #redis port
+    mode: release
+    port: 9090
+    sequence: true
+    redis:
+        port: 6380
 logger:
-  level: info #log level
+    level: info
+    dir: /usr/local/dkv/log
+ms:
+    role: 0
 ```
 
 **HTTP interface**
