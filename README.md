@@ -19,12 +19,20 @@
 > By default, the golang environment has been installed.
 
 ```
+first:
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
-Execute: dkv -d=true
-Configuration file: vim /usr/local/dkv/config.yaml
-Data directory: cd /usr/local/dkv/data
+Execute: dkv -d=true -conf=config-prod.yaml
+
+Bin directory: cd /usr/local/dkv/bin/
+Configuration directory: cd /usr/local/dkv/conf/
+Data directory: cd /usr/local/dkv/data/
+Logger directory: cd /usr/local/dkv/log/
+
+second:
+docker pull xincao9/dkv
+docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
 ```
 
 **Configuration file**
