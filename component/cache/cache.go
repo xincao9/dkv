@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	C = new(filepath.Join(constant.Dir, fn), constant.Cache, constant.CacheSize)
+	C = new(filepath.Join(constant.Dir, fn), constant.CacheOpen, constant.CacheSize)
 }
 
 type cache struct {

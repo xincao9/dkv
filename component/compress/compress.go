@@ -10,7 +10,7 @@ var (
 )
 
 func init() {
-	C = new(constant.Compress)
+	C = new(constant.CompressOpen)
 }
 
 func new(open bool) *compress {

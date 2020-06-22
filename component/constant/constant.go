@@ -24,8 +24,8 @@ var (
 	ByteOrder    = binary.BigEndian
 	Dir          = config.C.GetString("data.dir")
 	InvalidIndex = config.C.GetBool("data.invalidIndex")
-	Compress     = config.C.GetBool("data.compress")
-	Cache        = config.C.GetBool("data.cache")
+	CompressOpen = config.C.GetBool("data.compress.open")
+	CacheOpen    = config.C.GetBool("data.cache.open")
 	CacheSize    = config.C.GetInt("data.cache.size")
 	Mode         = config.C.GetString("server.mode")
 	Port         = config.C.GetInt("server.port")

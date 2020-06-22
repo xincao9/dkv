@@ -14,4 +14,3 @@ install:build
 	mkdir -p /usr/local/dkv/bin
 	cp ./resource/conf/* /usr/local/dkv/conf
 	cp dkv /usr/local/dkv/bin
-	export $PATH=$PATH:/usr/local/dkv/bin
