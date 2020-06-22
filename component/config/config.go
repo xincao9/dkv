@@ -2,10 +2,13 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -14,8 +17,25 @@ var (
 )
 
 func init() {
+	d := flag.Bool("d", false, "run app as a daemon with -d=true")
 	c := flag.String("conf", "config.yaml", "configure file")
-	flag.Parse()
+	if flag.Parsed() == false {
+		flag.Parse()
+	}
+	if *d {
+		args := os.Args[1:]
+		i := 0
+		for ; i < len(args); i++ {
+			if args[i] == "-d=true" {
+				args[i] = "-d=false"
+				break
+			}
+		}
+		cmd := exec.Command(os.Args[0], args...)
+		cmd.Start()
+		fmt.Println("[PID]", cmd.Process.Pid)
+		os.Exit(0)
+	}
 	// 配置文件设置
 	C = viper.New()
 	for _, t := range []string{"yaml", "yml"} {

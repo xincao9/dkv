@@ -11,32 +11,10 @@ import (
 	"dkv/component/pprof"
 	"dkv/store"
 	_ "dkv/store/synchronous"
-	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"os"
-	"os/exec"
 )
-
-func init() {
-	d := flag.Bool("d", false, "run app as a daemon with -d=true")
-	flag.Parse()
-	if *d {
-		args := os.Args[1:]
-		i := 0
-		for ; i < len(args); i++ {
-			if args[i] == "-d=true" {
-				args[i] = "-d=false"
-				break
-			}
-		}
-		cmd := exec.Command(os.Args[0], args...)
-		cmd.Start()
-		fmt.Println("[PID]", cmd.Process.Pid)
-		os.Exit(0)
-	}
-}
 
 func main() {
 	// 启动存储引擎
