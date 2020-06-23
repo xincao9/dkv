@@ -1,12 +1,10 @@
-GOPATH:=$(shell go env GOPATH)
-
 test:
 	go test -v ./... -cover
 
 build:
 	go build -tags=jsoniter -o dkv main.go
 
-docker:build
+docker:
 	docker build . -t dkv:latest
 
 install:build
