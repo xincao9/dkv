@@ -1,15 +1,15 @@
 package ms
 
 import (
-	"bytes"
-	"crypto/tls"
-	"dkv/client/balancer"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
-	"time"
+    "bytes"
+    "crypto/tls"
+    "dkv/client/balancer"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/http"
+    "strings"
+    "time"
 )
 
 type KV struct {
@@ -28,13 +28,13 @@ var (
 	KeyNotEmpty     = errors.New("key not empty")
 )
 
-type client struct {
+type Client struct {
 	c         *http.Client
 	masterUri string
 	uris      []string
 }
 
-func NewClient(addr string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*client, error) {
+func NewClient(addr string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*Client, error) {
 	if addr == "" {
 		return nil, ErrAddrNotEmpty
 	}
@@ -52,10 +52,10 @@ func NewClient(addr string, timeout time.Duration, idleConnTimeout time.Duration
 	if !strings.HasPrefix(addr, "http") {
 		proto = "http://"
 	}
-	return &client{c: c, masterUri: fmt.Sprintf("%s%s/kv", proto, addr)}, nil
+	return &Client{c: c, masterUri: fmt.Sprintf("%s%s/kv", proto, addr)}, nil
 }
 
-func NewMSClient(master string, slaves []string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*client, error) {
+func NewMSClient(master string, slaves []string, timeout time.Duration, idleConnTimeout time.Duration, maxIdleConns int, maxIdleConnsPerHost int) (*Client, error) {
 	if master == "" {
 		return nil, ErrAddrNotEmpty
 	}
@@ -82,18 +82,18 @@ func NewMSClient(master string, slaves []string, timeout time.Duration, idleConn
 	masterUri := fmt.Sprintf("%s%s/kv", proto, master)
 	balancer.B.Register(masterUri)
 	uris = append(uris, masterUri)
-	return &client{c: c, masterUri: masterUri, uris: uris}, nil
+	return &Client{c: c, masterUri: masterUri, uris: uris}, nil
 }
 
-func New(addr string, timeout time.Duration) (*client, error) {
+func New(addr string, timeout time.Duration) (*Client, error) {
 	return NewClient(addr, timeout, 0, 0, 0)
 }
 
-func NewMS(master string, slaves []string, timeout time.Duration) (*client, error) {
+func NewMS(master string, slaves []string, timeout time.Duration) (*Client, error) {
 	return NewMSClient(master, slaves, timeout, 0, 0, 0)
 }
 
-func (c *client) Put(key, value string) (*Result, error) {
+func (c *Client) Put(key, value string) (*Result, error) {
 	if key == "" {
 		return nil, KeyNotEmpty
 	}
@@ -115,17 +115,17 @@ func (c *client) Put(key, value string) (*Result, error) {
 	return parseResponse(response)
 }
 
-func (c *client) Get(key string) (*Result, error) {
+func (c *Client) Get(key string) (*Result, error) {
 	return c.GetOrRealtime(key, false)
 }
 
-func (c *client) GetRealtime(key string) (*Result, error) {
+func (c *Client) GetRealtime(key string) (*Result, error) {
 	return c.GetOrRealtime(key, true)
 }
 
-func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
+func (c *Client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 	if key == "" {
-		return nil, errors.New("key not empty")
+		return nil, KeyNotEmpty
 	}
 	uri := c.masterUri
 	if realtime == false {
@@ -146,9 +146,9 @@ func (c *client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 	return parseResponse(response)
 }
 
-func (c *client) Delete(key string) (*Result, error) {
+func (c *Client) Delete(key string) (*Result, error) {
 	if key == "" {
-		return nil, errors.New("key not empty")
+		return nil, KeyNotEmpty
 	}
 	request, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.masterUri, key), nil)
 	if err != nil {
