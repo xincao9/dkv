@@ -477,6 +477,8 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 					if err != nil {
 						return err
 					}
+				} else {
+				    fm.index.Delete(string(kv.Key))
 				}
 			}
 		}
