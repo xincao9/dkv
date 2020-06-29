@@ -259,7 +259,7 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	fm.rot = time.Now().Unix()
 	v, state := fm.index.Load(string(k))
 	if state == false {
-		return nil, constant.KeyNotFound
+		return nil, constant.KeyNotFoundError
 	}
 	item := v.(*Item)
 	b := make([]byte, item.size)
@@ -280,7 +280,7 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	}
 	if string(kv.Value) == constant.DeleteFlag {
 		fm.index.Delete(string(kv.Value))
-		return nil, constant.KeyNotFound
+		return nil, constant.KeyNotFoundError
 	}
 	return kv.Value, nil
 }

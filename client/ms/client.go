@@ -128,7 +128,7 @@ func (c *Client) GetOrRealtime(key string, realtime bool) (*Result, error) {
 		return nil, KeyNotEmpty
 	}
 	uri := c.masterUri
-	if realtime == false {
+	if realtime == false && c.uris != nil && len(c.uris) > 0 {
 		uri = balancer.B.Choose()
 	}
 	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", uri, key), nil)

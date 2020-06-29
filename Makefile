@@ -1,5 +1,5 @@
 test:
-	go test -v ./... -cover
+	go test -v ./... -cover -cpu 1
 
 build:
 	go build -tags=jsoniter -o dkv main.go

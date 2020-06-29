@@ -2,7 +2,6 @@ package store
 
 import (
 	"dkv/component/constant"
-	"os"
 	"strconv"
 	"testing"
 )
@@ -10,7 +9,6 @@ import (
 var doc = make([]byte, 1024)
 
 func BenchmarkStore_Put(b *testing.B) {
-	os.RemoveAll(constant.DefaultDir)
 	s, err := NewStore()
 	if err != nil {
 		b.Error(err)
@@ -22,11 +20,9 @@ func BenchmarkStore_Put(b *testing.B) {
 		}
 	}
 	s.Close()
-	os.RemoveAll(constant.DefaultDir)
 }
 
 func BenchmarkStore_Get(b *testing.B) {
-	os.RemoveAll(constant.DefaultDir)
 	s, err := NewStore()
 	if err != nil {
 		b.Error(err)
@@ -42,21 +38,17 @@ func BenchmarkStore_Get(b *testing.B) {
 		}
 	}
 	s.Close()
-	os.RemoveAll(constant.DefaultDir)
 }
 
 func TestNew(t *testing.T) {
-	os.RemoveAll(constant.DefaultDir)
 	s, err := NewStore()
 	if err != nil {
 		t.Error(err)
 	}
 	s.Close()
-	os.RemoveAll(constant.DefaultDir)
 }
 
 func TestStore_Get(t *testing.T) {
-	os.RemoveAll(constant.DefaultDir)
 	s, err := NewStore()
 	if err != nil {
 		t.Error(err)
@@ -73,11 +65,9 @@ func TestStore_Get(t *testing.T) {
 		t.Errorf("value should be v, now %s\n", string(val))
 	}
 	s.Close()
-	os.RemoveAll(constant.DefaultDir)
 }
 
 func TestStore_Delete(t *testing.T) {
-	os.RemoveAll(constant.DefaultDir)
 	s, err := NewStore()
 	if err != nil {
 		t.Error(err)
@@ -91,9 +81,8 @@ func TestStore_Delete(t *testing.T) {
 		t.Error(err)
 	}
 	_, err = s.Get([]byte("k"))
-	if err != constant.KeyNotFound {
+	if err != constant.KeyNotFoundError {
 		t.Error(err)
 	}
 	s.Close()
-	os.RemoveAll(constant.DefaultDir)
 }

@@ -25,7 +25,7 @@ func Route(engine *gin.Engine) {
 			c.Data(http.StatusOK, http.DetectContentType(val), val)
 			return
 		}
-		if err == constant.KeyNotFound {
+		if err == constant.KeyNotFoundError {
 			c.Writer.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -39,7 +39,7 @@ func Route(engine *gin.Engine) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    http.StatusBadRequest,
-				"message": "参数错误",
+				"message": constant.InvalidArgument,
 			})
 			return
 		}
@@ -68,7 +68,7 @@ func Route(engine *gin.Engine) {
 			h.Write(val)
 			key := []byte(hex.EncodeToString(h.Sum(nil)))
 			_, err = store.S.Get(key)
-			if err == constant.KeyNotFound {
+			if err == constant.KeyNotFoundError {
 				err = store.S.Put(key, val)
 			}
 			if err != nil {
@@ -81,7 +81,7 @@ func Route(engine *gin.Engine) {
 		c.JSON(http.StatusOK,
 			gin.H{
 				"code":    http.StatusOK,
-				"message": "成功",
+				"message": constant.Ok,
 				"items":   items,
 			})
 	})
