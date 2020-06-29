@@ -99,3 +99,7 @@ func (af *appendFile) Sync() {
 		}
 	}
 }
+
+func (af *appendFile) GetRole () int {
+    return af.role;
+}

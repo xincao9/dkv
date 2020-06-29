@@ -152,6 +152,9 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 					if state == false {
 						return true
 					}
+					if af.(*appendFile).GetRole() == constant.Active {
+					    return true;
+					}
 					if err = fm.Merge(af.(*appendFile)); err != nil {
 						logger.L.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
 					} else {
@@ -488,7 +491,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 }
 
 func (fm *AppendFileManager) Remove(af *appendFile) {
-	if af.role != constant.Older {
+	if af.GetRole() != constant.Older {
 		return
 	}
 	fm.afmap.Delete(af.fid)
