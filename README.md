@@ -1,43 +1,42 @@
 # dkv
 
-**A Log-Structured Hash Table for Fast Key/Value Data** 
+**对象存储 - 日志结构哈希表** 
 
 [![CodeFactor](https://www.codefactor.io/repository/github/xincao9/dkv/badge)](https://www.codefactor.io/repository/github/xincao9/dkv)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e062787e83ab41c387e567f5210d4cc4)](https://www.codacy.com/manual/xincao9/dkv?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xincao9/dkv&amp;utm_campaign=Badge_Grade)
 
 ![logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 
-* low latency per item read or written
-* high throughput, especially when writing an incoming stream of random items
-* ability to handle datasets much larger than RAM w/o degradation
-* crash friendliness, both in terms of fast recovery and not losing data
-* ease of backup and restore
-* a relatively simple, understandable (and thus supportable) code structure and data format • predictable behavior under heavy access load or large volume
+* 读写低延迟
+* 高吞吐量，尤其针对大对象存储
+* 存储海量数据
+* 崩溃优化，可以快速修复数据
+* 轻松备份和还原
 
-**Install**
+**安装说明**
 
-> By default, the golang environment has been installed.
+> 编译（认为你已经安装好golang环境）
 
 ```
-first:
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
-Execute: dkv -d=true -conf=config-prod.yaml
 
-Bin directory: cd /usr/local/dkv/bin/
-Configuration directory: cd /usr/local/dkv/conf/
-Data directory: cd /usr/local/dkv/data/
-Logger directory: cd /usr/local/dkv/log/
+运行命令: dkv -d=true -conf=config-prod.yaml
+可执行文件: /usr/local/dkv/bin/
+配置文件目录: /usr/local/dkv/conf/
+数据目录: /usr/local/dkv/data/
+日志目录: /usr/local/dkv/log/
+```
 
-second:
+> 容器安装
+
+```
 docker pull xincao9/dkv
 docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
 ```
 
-**Configuration file**
-
-> config.yaml Placed in the current working directory or /etc/dkv/ or $HOME/.dkv or /usr/local/dkv
+**config.yaml 配置说明**
 
 ```
 data:
@@ -61,29 +60,40 @@ ms:
     role: 0
 ```
 
-**HTTP interface**
+**HTTP 接口**
 
-> KV store
+> 键值存储
 
-```
-Add or modify
-curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
-Search
-curl -X GET 'http://localhost:9090/kv/name'
-delete
-curl -X DELETE 'http://localhost:9090/kv/name'
-```
+1. 增加或修改
 
-> OSS (Object Storage Service)
+    ```
+    curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
+    ```
+2. 查询
 
-```
-Upload file, file max size 64M
-curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data'
-Fetch file
-curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
-```
+    ```
+    curl -X GET 'http://localhost:9090/kv/name'
+    ```
+3. 删除
 
-**Redis command**
+    ```
+    curl -X DELETE 'http://localhost:9090/kv/name'
+    ```
+
+> 对象存储
+
+1. 上传对象，最大64M
+
+    ```
+    curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data'
+    ```
+2. 读取文件
+
+    ```
+    curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
+    ```
+
+**REDIS 支持命令**
 
 
 * SET key value
@@ -110,7 +120,7 @@ if err != nil {
 log.Println(val)
 ```
 
-**GO SDK**
+**GO SDK 接入**
 
 > go get github.com/xincao9/dkv/client
 
@@ -129,27 +139,34 @@ if err == nil {
 }
 ```
 
-**Management interface**
+**管理接口**
 
-```
-View runtime configuration
-curl -X GET 'http://localhost:9090/config'
-Prometheus indicator
-curl -X GET 'http://localhost:9090/metrics'
-Pprof interface
-curl -X GET 'http://localhost:9090/debug/pprof'
-```
+1. 运行时配置
 
-**Grafana dashboard resources**
+    ```
+    curl -X GET 'http://localhost:9090/config'
+    ```
+2. 普罗米修斯指示器
+
+    ```
+    curl -X GET 'http://localhost:9090/metrics'
+    ```
+3. pprof 接口
+
+    ```
+    curl -X GET 'http://localhost:9090/debug/pprof'
+    ```
+
+**Grafana dashboard 资源**
 
 > [prometheus.json](https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json)
 
-**Pressure test**
+**压力测试**
 
 ```
-Execute benchmark/start.sh
+执行: benchmark/start.sh
 ```
 
-**Reference**
+**参考**
 
 * [bitcask-intro](https://github.com/xincao9/dkv/blob/master/bitcask-intro.pdf)
