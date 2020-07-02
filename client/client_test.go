@@ -1,4 +1,4 @@
-package ms
+package client
 
 import (
 	"testing"

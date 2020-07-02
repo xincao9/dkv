@@ -1,15 +1,14 @@
-package ms
+package client
 
 import (
-    "bytes"
-    "crypto/tls"
-    "guthub.com/xincao9/dkv/client/balancer"
-    "encoding/json"
-    "errors"
-    "fmt"
-    "net/http"
-    "strings"
-    "time"
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type KV struct {
@@ -76,11 +75,11 @@ func NewMSClient(master string, slaves []string, timeout time.Duration, idleConn
 	var uris []string
 	for _, slave := range slaves {
 		slaveUri := fmt.Sprintf("%s%s/kv", proto, slave)
-		balancer.B.Register(slaveUri)
+		B.Register(slaveUri)
 		uris = append(uris, slaveUri)
 	}
 	masterUri := fmt.Sprintf("%s%s/kv", proto, master)
-	balancer.B.Register(masterUri)
+	B.Register(masterUri)
 	uris = append(uris, masterUri)
 	return &Client{c: c, masterUri: masterUri, uris: uris}, nil
 }

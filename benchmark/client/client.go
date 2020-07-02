@@ -1,7 +1,7 @@
 package client
 
 import (
-	"dkv/client/ms"
+	"github.com/xincao9/dkv/client"
 	"log"
 	"math/rand"
 	"strconv"
@@ -13,7 +13,7 @@ const maxRequestCount = 1000000
 var doc = make([]byte, 1024)
 
 func Benchmark() {
-	cli, err := ms.New("localhost:9090", time.Second)
+	cli, err := client.New("localhost:9090", time.Second)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -1,4 +1,4 @@
-package balancer
+package client
 
 import (
 	"sync/atomic"
@@ -9,7 +9,7 @@ var (
 )
 
 func init() {
-	B = New()
+	B = new()
 }
 
 type balancer struct {
@@ -18,7 +18,7 @@ type balancer struct {
 	l       uint64
 }
 
-func New() *balancer {
+func new() *balancer {
 	return &balancer{nodes: make([]string, 0, 10)}
 }
 
