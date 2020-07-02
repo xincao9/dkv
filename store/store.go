@@ -103,7 +103,7 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 		<-r.resp
 		return r.kv.v, r.kv.err
 	}
-	return s.FM.Read(k)
+	return s.FM.Read(k), nil
 }
 
 func (s *Store) Put(k, v []byte) error {

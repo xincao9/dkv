@@ -3,7 +3,7 @@ package ms
 import (
     "bytes"
     "crypto/tls"
-    "dkv/client/balancer"
+    "guthub.com/xincao9/dkv/client/balancer"
     "encoding/json"
     "errors"
     "fmt"
