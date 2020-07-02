@@ -169,4 +169,4 @@ if err == nil {
 
 **参考**
 
-* [bitcask-intro](https://github.com/xincao9/dkv/blob/master/bitcask-intro.pdf)
+* [bitcask-intro](https://github.com/xincao9/dkv/blob/master/resource/bitcask-intro.pdf)
