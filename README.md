@@ -23,13 +23,13 @@ cd ./dkv
 sudo make install
 
 运行命令: dkv -d=true -conf=config-prod.yaml
-可执行文件: /usr/local/dkv/bin/
+可执行文件: /usr/local/dkv/bin/dkv
 配置文件目录: /usr/local/dkv/conf/
 数据目录: /usr/local/dkv/data/
 日志目录: /usr/local/dkv/log/
 ```
 
-> 容器安装
+> 容器化部署
 
 ```
 docker pull xincao9/dkv
