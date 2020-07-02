@@ -15,7 +15,7 @@
 
 **安装说明**
 
-> 编译（认为你已经安装好golang环境）
+> 编译, 运行（认为你已经安装好golang环境）
 
 ```
 git clone https://github.com/xincao9/dkv.git
