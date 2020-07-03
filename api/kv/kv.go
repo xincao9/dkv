@@ -49,25 +49,27 @@ func Route(engine *gin.Engine) {
 		response(c, http.StatusInternalServerError, constant.InternalError)
 		metrics.GetCount.WithLabelValues("failure", "server_error").Inc()
 	})
-	engine.PUT("/kv", func(c *gin.Context) {
-		var kv KV
-		if err := c.ShouldBindJSON(&kv); err != nil {
-			response(c, http.StatusBadRequest, constant.InvalidArgument)
-			metrics.PutCount.WithLabelValues("failure").Inc()
-			return
-		}
-		val := compress.C.Encode([]byte(kv.V))
-		err := store.S.Put([]byte(kv.K), val)
-		if err != nil {
-			logger.L.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
-			response(c, http.StatusInternalServerError, constant.InternalError)
-			metrics.PutCount.WithLabelValues("failure").Inc()
-			return
-		}
-		cache.C.Del([]byte(kv.K))
-		response(c, http.StatusOK, constant.Ok)
-		metrics.PutCount.WithLabelValues("success").Inc()
-	})
+	save := func(c *gin.Context) {
+        var kv KV
+        if err := c.ShouldBindJSON(&kv); err != nil {
+            response(c, http.StatusBadRequest, constant.InvalidArgument)
+            metrics.PutCount.WithLabelValues("failure").Inc()
+            return
+        }
+        val := compress.C.Encode([]byte(kv.V))
+        err := store.S.Put([]byte(kv.K), val)
+        if err != nil {
+            logger.L.Errorf("method:post path:/kv/ body:%v err=%s\n", kv, err)
+            response(c, http.StatusInternalServerError, constant.InternalError)
+            metrics.PutCount.WithLabelValues("failure").Inc()
+            return
+        }
+        cache.C.Del([]byte(kv.K))
+        response(c, http.StatusOK, constant.Ok)
+        metrics.PutCount.WithLabelValues("success").Inc()
+    }
+    engine.POST("/kv", save)
+	engine.PUT("/kv", save)
 	engine.DELETE("/kv/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {

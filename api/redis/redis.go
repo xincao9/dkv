@@ -68,7 +68,7 @@ func run() {
 		},
 	)
 	if err != nil {
-		logger.L.Fatalf("fatal err redis: %v\n", err)
+		logger.L.Fatalf("Fatal error redis: %v\n", err)
 	}
 }
 
