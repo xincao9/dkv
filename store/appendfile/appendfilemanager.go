@@ -25,9 +25,9 @@ type (
 	AppendFileManager struct {
 		activeAF *appendFile
 		olderAF  []*appendFile
-		index    sync.Map
-		afmap    sync.Map
-		counter  sync.Map
+		index    *sync.Map
+		afmap    *sync.Map
+		counter  *sync.Map
 		rot      int64 // Recent operation time
 		sistate  int32 // save index state
 		loadtime time.Time
@@ -75,8 +75,9 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 	fm := &AppendFileManager{
 		activeAF: activeAF,
 		olderAF:  olderAF,
-		index:    sync.Map{},
-		afmap:    afmap,
+		index:    &sync.Map{},
+		afmap:    &afmap,
+		counter:  &sync.Map{},
 		loadtime: time.Now(),
 	}
 	if constant.MSRole != constant.Slave {
@@ -153,7 +154,7 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 						return true
 					}
 					if af.(*appendFile).GetRole() == constant.Active {
-					    return true;
+						return true
 					}
 					if err = fm.Merge(af.(*appendFile)); err != nil {
 						logger.L.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
@@ -481,7 +482,7 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 						return err
 					}
 				} else {
-				    fm.index.Delete(string(kv.Key))
+					fm.index.Delete(string(kv.Key))
 				}
 			}
 		}

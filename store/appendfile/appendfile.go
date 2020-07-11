@@ -100,6 +100,6 @@ func (af *appendFile) Sync() {
 	}
 }
 
-func (af *appendFile) GetRole () int {
-    return af.role;
+func (af *appendFile) GetRole() int {
+	return af.role
 }
