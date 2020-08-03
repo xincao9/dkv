@@ -58,7 +58,7 @@ func New() (*Synchronous, error) {
 					i := strings.LastIndex(c.RemoteAddr().String(), ":")
 					host := string([]byte(c.RemoteAddr().String())[:i])
 					logger.L.Infof("Synchronous new handler host: %s\n", host)
-					s.connections.Store(host, conn)
+					s.connections.Store(host, c)
 					state := true
 					for state {
 						_, state = s.connections.Load(host)
