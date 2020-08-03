@@ -9,7 +9,7 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/prometheus/client_golang v1.1.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.7.1
 	github.com/tidwall/redcon v1.0.0
 	github.com/zsais/go-gin-prometheus v0.1.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
