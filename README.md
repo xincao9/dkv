@@ -159,7 +159,7 @@ if err == nil {
 
 **Grafana dashboard 资源**
 
-> [prometheus.json](https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json)
+> [prometheus.json](https://github.com/xincao9/dkv/blob/master/resource/prometheus.json)
 
 **压力测试**
 
