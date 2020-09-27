@@ -47,7 +47,7 @@ func Route(engine *gin.Engine) {
 		items := make([]struct {
 			Filename string `json:"filename"`
 			Oid      string `json:"oid"`
-			Status   bool   `json:"Status"`
+			Status   bool   `json:"status"`
 		}, len(files))
 		for i, file := range files {
 			f, err := file.Open()
