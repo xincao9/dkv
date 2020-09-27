@@ -6,6 +6,7 @@ import (
 	"dkv/api/redis"
 	"dkv/component/cache"
 	"dkv/component/config"
+	"dkv/component/constant"
 	"dkv/component/logger"
 	"dkv/component/metrics"
 	"dkv/component/pprof"
@@ -22,7 +23,7 @@ func main() {
 	defer cache.C.Close()
 
 	// 启动http服务
-	gin.SetMode(config.C.GetString("server.mode"))
+	gin.SetMode(constant.Mode)
 	engine := gin.New()
 	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{Output: logger.L.WriterLevel(logrus.DebugLevel)}), gin.RecoveryWithWriter(logger.L.WriterLevel(logrus.ErrorLevel)))
 	kv.Route(engine)     // 注册KV服务接口
@@ -31,7 +32,7 @@ func main() {
 	pprof.Wrap(engine)   // 注册pprof接口
 	config.Route(engine) // 配置服务接口
 	redis.ListenAndServe()
-	addr := fmt.Sprintf(":%s", config.C.GetString("server.port"))
+	addr := fmt.Sprintf(":%d", constant.Port)
 	logger.L.Infof("Listening and serving HTTP on : %s", addr)
 	if err := engine.Run(addr); err != nil {
 		logger.L.Fatalf("Fatal error gin: %v\n", err)

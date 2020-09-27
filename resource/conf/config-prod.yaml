@@ -1,19 +1,19 @@
 data:
-    dir: /usr/local/dkv/data
-    invalidIndex: false
-    cache:
-        open: true
-        size: 1073741824
-    compress:
-        open: false
+  dir: /usr/local/dkv/data
+  invalidIndex: false
+  cache:
+    open: true
+    size: 1073741824
+  compress:
+    open: false
 server:
-    mode: release
-    port: 9090
-    sequence: true
-    redis:
-        port: 6380
+  mode: release
+  port: 9090
+  sequence: true
+  redis:
+    port: 6380
 logger:
-    level: info
-    dir: /usr/local/dkv/log
+  level: info
+  dir: /usr/local/dkv/log
 ms:
-    role: 0
+  role: 0

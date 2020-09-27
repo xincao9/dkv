@@ -20,8 +20,7 @@ func init() {
 	PutCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "dkv_put_count",
 		Help: "put操作数",
-	},
-		[]string{"status"})
+	}, []string{"status"})
 	GetCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "dkv_get_count",
 		Help: "get操作数",

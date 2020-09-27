@@ -2,8 +2,8 @@ package client
 
 import (
 	"errors"
-    "hash/crc32"
-    "time"
+	"hash/crc32"
+	"time"
 )
 
 type Partition struct {
@@ -39,20 +39,20 @@ func NewCluster(partitions []*Partition, timeout time.Duration) (*cluster, error
 	}, nil
 }
 
-func (c *cluster) Get (key string) (*Result, error) {
-    size := len(c.clients)
-    hash := (int)(crc32.ChecksumIEEE([]byte(key)))
-    return c.clients[hash % size].Get(key)
+func (c *cluster) Get(key string) (*Result, error) {
+	size := len(c.clients)
+	hash := (int)(crc32.ChecksumIEEE([]byte(key)))
+	return c.clients[hash%size].Get(key)
 }
 
-func (c *cluster) Put (key string, value string) (*Result, error) {
-    size := len(c.clients)
-    hash := (int)(crc32.ChecksumIEEE([]byte(key)))
-    return c.clients[hash % size].Put(key, value)
+func (c *cluster) Put(key string, value string) (*Result, error) {
+	size := len(c.clients)
+	hash := (int)(crc32.ChecksumIEEE([]byte(key)))
+	return c.clients[hash%size].Put(key, value)
 }
 
-func (c *cluster) Delete (key string) (*Result, error) {
-    size := len(c.clients)
-    hash := (int)(crc32.ChecksumIEEE([]byte(key)))
-    return c.clients[hash % size].Delete(key)
+func (c *cluster) Delete(key string) (*Result, error) {
+	size := len(c.clients)
+	hash := (int)(crc32.ChecksumIEEE([]byte(key)))
+	return c.clients[hash%size].Delete(key)
 }

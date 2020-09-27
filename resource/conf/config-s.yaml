@@ -1,21 +1,21 @@
 data:
-    dir: /usr/local/dkv/data/s
-    invalidIndex: false
-    cache:
-        open: true
-        size: 1073741824
-    compress:
-        open: false
+  dir: /usr/local/dkv/data/s
+  invalidIndex: false
+  cache:
+    open: true
+    size: 1073741824
+  compress:
+    open: false
 server:
-    mode: release
-    port: 8091
-    sequence: true
-    redis:
-        port: 5381
+  mode: release
+  port: 8091
+  sequence: true
+  redis:
+    port: 5381
 logger:
-    level: info
-    dir: /usr/local/dkv/log/s
+  level: info
+  dir: /usr/local/dkv/log/s
 ms:
-    role: 2
-    s:
-        addr: localhost:7380
+  role: 2
+  s:
+    addr: localhost:7380
