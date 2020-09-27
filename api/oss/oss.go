@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"dkv/component/constant"
 	"dkv/component/logger"
+	"dkv/component/metrics"
 	"dkv/store"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
@@ -18,18 +19,22 @@ func Route(engine *gin.Engine) {
 		oid := c.Param("oid")
 		if oid == "" {
 			c.Writer.WriteHeader(http.StatusBadRequest)
+			metrics.DownloadCount.WithLabelValues("failure", "bad_request").Inc()
 			return
 		}
 		val, err := store.S.Get([]byte(oid))
 		if err == nil {
 			c.Data(http.StatusOK, http.DetectContentType(val), val)
+			metrics.DownloadCount.WithLabelValues("success", "disk").Inc()
 			return
 		}
 		if err == constant.KeyNotFoundError {
 			c.Writer.WriteHeader(http.StatusNotFound)
+			metrics.DownloadCount.WithLabelValues("failure", "not_found").Inc()
 			return
 		}
 		logger.L.Errorf("oid = %s, err = %v\n", oid, err)
+		metrics.DownloadCount.WithLabelValues("failure", "server_error").Inc()
 		c.Writer.WriteHeader(http.StatusInternalServerError)
 	})
 
