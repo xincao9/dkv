@@ -10,7 +10,8 @@ var (
 	ObjectCurrentCount prometheus.Gauge
 	PutCount           *prometheus.GaugeVec
 	GetCount           *prometheus.GaugeVec
-	DownloadCount           *prometheus.GaugeVec
+	DownloadCount      *prometheus.GaugeVec
+	UploadCount        *prometheus.GaugeVec
 )
 
 func init() {
@@ -28,8 +29,12 @@ func init() {
 	}, []string{"status", "source"})
 	DownloadCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "oss_download_count",
-		Help: "下载操作数",
+		Help: "download操作数",
 	}, []string{"status", "source"})
+	UploadCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "oss_upload_count",
+		Help: "upload操作数",
+	}, []string{"status"})
 	prometheus.MustRegister(ObjectCurrentCount, PutCount, GetCount)
 }
 

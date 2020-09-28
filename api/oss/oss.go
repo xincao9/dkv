@@ -46,6 +46,7 @@ func Route(engine *gin.Engine) {
 				"code":    http.StatusBadRequest,
 				"message": constant.InvalidArgument,
 			})
+			metrics.UploadCount.WithLabelValues("failure", "bad_request").Inc()
 			return
 		}
 		files := form.File["file[]"]
@@ -61,12 +62,14 @@ func Route(engine *gin.Engine) {
 			if err != nil {
 				items[i].Status = false
 				logger.L.Error(err)
+				metrics.UploadCount.WithLabelValues("failure", "server_error").Inc()
 				continue
 			}
 			val, err := ioutil.ReadAll(f)
 			if err != nil {
 				items[i].Status = false
 				logger.L.Error(err)
+				metrics.UploadCount.WithLabelValues("failure", "server_error").Inc()
 				continue
 			}
 			h := md5.New()
@@ -79,8 +82,10 @@ func Route(engine *gin.Engine) {
 			if err != nil {
 				items[i].Status = false
 				logger.L.Error(err)
+				metrics.UploadCount.WithLabelValues("failure", "server_error").Inc()
 				continue
 			}
+			metrics.UploadCount.WithLabelValues("success", "disk").Inc()
 			items[i].Oid = string(key)
 		}
 		c.JSON(http.StatusOK,
