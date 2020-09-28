@@ -22,7 +22,7 @@ func init() {
 	PutCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "dkv_put_count",
 		Help: "put操作数",
-	}, []string{"status"})
+	}, []string{"status", "source"})
 	GetCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "dkv_get_count",
 		Help: "get操作数",
@@ -34,7 +34,7 @@ func init() {
 	UploadCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "oss_upload_count",
 		Help: "upload操作数",
-	}, []string{"status"})
+	}, []string{"status", "source"})
 	prometheus.MustRegister(ObjectCurrentCount, PutCount, GetCount)
 }
 
