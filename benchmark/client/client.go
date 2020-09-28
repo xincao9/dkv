@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/xincao9/dkv/client"
 	"log"
 	"math/rand"
 	"strconv"
