@@ -13,9 +13,9 @@
 * 崩溃后数据修复友好
 * 支持数据的备份和还原
 
-##安装指导
+## 安装指导
 
-###本地编译
+### 本地编译
 
 ```
 git clone https://github.com/xincao9/dkv.git
@@ -62,16 +62,16 @@ ms:
 dkv -d=true -conf=config-prod.yaml
 ```
 
-###容器化部署
+### 容器化部署
 
 ```
 docker pull xincao9/dkv
 docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
 ```
 
-##接口说明
+## 接口说明
 
-###HTTP接口
+### HTTP接口
 
 **键值存储**
 
@@ -104,7 +104,7 @@ docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
     curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
     ```
 
-###REDIS 支持命令
+### REDIS 支持命令
 
 
 * SET key value
@@ -133,7 +133,7 @@ if err != nil {
 log.Println(val)
 ```
 
-###GO SDK接入
+### GO SDK接入
 
 ```
 go get github.com/xincao9/dkv/client
@@ -154,7 +154,7 @@ if err == nil {
 }
 ```
 
-###管理接口
+### 管理接口
 
 1. 运行时配置
 
@@ -176,12 +176,12 @@ if err == nil {
 
 > [prometheus.json](https://github.com/xincao9/dkv/blob/master/resource/prometheus.json)
 
-##压力测试
+## 压力测试
 
 ```
 执行: benchmark/start.sh
 ```
 
-##参考
+## 参考
 
 * [bitcask-intro](https://github.com/xincao9/dkv/blob/master/resource/bitcask-intro.pdf)
