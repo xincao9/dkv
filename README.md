@@ -23,7 +23,7 @@ cd ./dkv
 sudo make install
 ```
 
-**/usr/local/dkv/conf/config.yaml 配置说明**
+**/usr/local/dkv/conf/config-prod.yaml 配置文件**
 
 ```
 data:
