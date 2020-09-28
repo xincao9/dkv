@@ -1,42 +1,29 @@
 # dkv
 
-**对象存储 - 日志结构哈希表** 
+**对象存储 - 日志结构哈希表**
 
 [![CodeFactor](https://www.codefactor.io/repository/github/xincao9/dkv/badge)](https://www.codefactor.io/repository/github/xincao9/dkv)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e062787e83ab41c387e567f5210d4cc4)](https://www.codacy.com/manual/xincao9/dkv?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xincao9/dkv&amp;utm_campaign=Badge_Grade)
 
 ![logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 
-* 读写低延迟
-* 高吞吐量，尤其针对大对象存储
-* 存储海量数据
-* 崩溃优化，可以快速修复数据
-* 轻松备份和还原
+* 读取和写入较低的延迟
+* 高吞吐量
+* 支持存储海量数据
+* 崩溃后数据修复友好
+* 支持数据的备份和还原
 
-**安装说明**
+##安装指导
 
-> 编译, 运行（认为你已经安装好golang环境）
+###本地编译
 
 ```
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
-
-运行命令: dkv -d=true -conf=config-prod.yaml
-可执行文件: /usr/local/dkv/bin/dkv
-配置文件目录: /usr/local/dkv/conf/
-数据目录: /usr/local/dkv/data/
-日志目录: /usr/local/dkv/log/
 ```
 
-> 容器化部署
-
-```
-docker pull xincao9/dkv
-docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
-```
-
-**config.yaml 配置说明**
+**/usr/local/dkv/conf/config.yaml 配置说明**
 
 ```
 data:
@@ -60,9 +47,33 @@ ms:
     role: 0
 ```
 
-**HTTP 接口**
+**目录说明**
 
-> 键值存储
+```
+执行文件: /usr/local/dkv/bin/dkv
+配置文件目录: /usr/local/dkv/conf/
+数据目录: /usr/local/dkv/data/
+日志目录: /usr/local/dkv/log/
+```
+
+**执行命令**
+
+```
+dkv -d=true -conf=config-prod.yaml
+```
+
+###容器化部署
+
+```
+docker pull xincao9/dkv
+docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
+```
+
+##接口说明
+
+###HTTP接口
+
+**键值存储**
 
 1. 增加或修改
 
@@ -80,7 +91,7 @@ ms:
     curl -X DELETE 'http://localhost:9090/kv/name'
     ```
 
-> 对象存储
+**对象存储**
 
 1. 上传对象，最大64M
 
@@ -93,7 +104,7 @@ ms:
     curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
     ```
 
-**REDIS 支持命令**
+###REDIS 支持命令
 
 
 * SET key value
@@ -101,7 +112,9 @@ ms:
 * DEL key
 * PING
 
-> go get github.com/go-redis/redis
+```
+go get github.com/go-redis/redis
+```
 
 ```
 client := redis.NewClient(&redis.Options{
@@ -120,9 +133,11 @@ if err != nil {
 log.Println(val)
 ```
 
-**GO SDK 接入**
+###GO SDK接入
 
-> go get github.com/xincao9/dkv/client
+```
+go get github.com/xincao9/dkv/client
+```
 
 ```
 c, err := client.New("localhost:9090", time.Second)
@@ -139,7 +154,7 @@ if err == nil {
 }
 ```
 
-**管理接口**
+###管理接口
 
 1. 运行时配置
 
@@ -161,12 +176,12 @@ if err == nil {
 
 > [prometheus.json](https://github.com/xincao9/dkv/blob/master/resource/prometheus.json)
 
-**压力测试**
+##压力测试
 
 ```
 执行: benchmark/start.sh
 ```
 
-**参考**
+##参考
 
 * [bitcask-intro](https://github.com/xincao9/dkv/blob/master/resource/bitcask-intro.pdf)
