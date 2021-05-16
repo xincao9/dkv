@@ -1,23 +1,24 @@
 package meta
 
 import (
+	"dkv/component/constant"
 	"os"
 	"testing"
 	"time"
 )
 
 func TestNewMeta(t *testing.T) {
-	os.RemoveAll(DefaultDir)
-	m, err := NewMeta("")
+	os.RemoveAll(constant.DefaultDir)
+	m, err := New()
 	if err != nil {
 		t.Error(m)
 	}
-	os.RemoveAll(DefaultDir)
+	os.RemoveAll(constant.DefaultDir)
 }
 
 func TestMeta_Save(t *testing.T) {
-	os.RemoveAll(DefaultDir)
-	m, err := NewMeta("")
+	os.RemoveAll(constant.DefaultDir)
+	m, err := New()
 	if err != nil {
 		t.Error(m)
 	}
@@ -27,5 +28,5 @@ func TestMeta_Save(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	os.RemoveAll(DefaultDir)
+	os.RemoveAll(constant.DefaultDir)
 }

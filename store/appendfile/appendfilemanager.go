@@ -2,9 +2,9 @@ package appendfile
 
 import (
 	"bytes"
-	"dkv/constant"
-	"dkv/logger"
-	"dkv/metrics"
+	"dkv/component/constant"
+	"dkv/component/logger"
+	"dkv/component/metrics"
 	"dkv/store/meta"
 	"fmt"
 	"io"
@@ -25,9 +25,9 @@ type (
 	AppendFileManager struct {
 		activeAF *appendFile
 		olderAF  []*appendFile
-		index    sync.Map
-		afmap    sync.Map
-		counter  sync.Map
+		index    *sync.Map
+		afmap    *sync.Map
+		counter  *sync.Map
 		rot      int64 // Recent operation time
 		sistate  int32 // save index state
 		loadtime time.Time
@@ -47,27 +47,27 @@ func (i i64) Less(x, y int) bool {
 }
 
 func NewAppendFileManager() (*AppendFileManager, error) {
-	if meta.D.ActiveFid == 0 {
-		meta.D.ActiveFid = time.Now().UnixNano()
-		meta.D.Save()
+	if meta.M.ActiveFid == 0 {
+		meta.M.ActiveFid = time.Now().UnixNano()
+		meta.M.Save()
 	}
 	afmap := sync.Map{}
-	activeAF, err := NewAppendFile(constant.Dir, constant.Active, meta.D.ActiveFid)
+	activeAF, err := NewAppendFile(constant.Dir, constant.Active, meta.M.ActiveFid)
 	if err != nil {
-		logger.D.Errorf("open active fid=%d, err=%v\n", meta.D.ActiveFid, err)
+		logger.L.Errorf("open active fid=%d, err=%v\n", meta.M.ActiveFid, err)
 		return nil, err
 	} else {
-		logger.D.Infof("open active fid=%d, success\n", meta.D.ActiveFid)
+		logger.L.Infof("open active fid=%d, success\n", meta.M.ActiveFid)
 	}
-	afmap.Store(meta.D.ActiveFid, activeAF)
+	afmap.Store(meta.M.ActiveFid, activeAF)
 	olderAF := make([]*appendFile, 0)
-	for _, fid := range meta.D.OlderFids {
+	for _, fid := range meta.M.OlderFids {
 		af, err := NewAppendFile(constant.Dir, constant.Older, fid)
 		if err != nil {
-			logger.D.Errorf("open older fid=%d, err=%v\n", fid, err)
+			logger.L.Errorf("open older fid=%d, err=%v\n", fid, err)
 			return nil, err
 		} else {
-			logger.D.Infof("open older fid=%d, success\n", fid)
+			logger.L.Infof("open older fid=%d, success\n", fid)
 		}
 		olderAF = append(olderAF, af)
 		afmap.Store(fid, af)
@@ -75,8 +75,9 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 	fm := &AppendFileManager{
 		activeAF: activeAF,
 		olderAF:  olderAF,
-		index:    sync.Map{},
-		afmap:    afmap,
+		index:    &sync.Map{},
+		afmap:    &afmap,
+		counter:  &sync.Map{},
 		loadtime: time.Now(),
 	}
 	if constant.MSRole != constant.Slave {
@@ -85,7 +86,7 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 				err := func() error {
 					defer func() {
 						if err := recover(); err != nil {
-							logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
+							logger.L.Errorf("文件回滚定时任务异常 %v\n", err)
 						}
 					}()
 					fm.activeAF.Sync()
@@ -106,16 +107,16 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 					fm.olderAF = append(fm.olderAF, oaf)
 					fm.activeAF = af
 					oaf.SetOlder()
-					meta.D.ActiveFid = fid
-					meta.D.OlderFids = append(meta.D.OlderFids, oaf.fid)
-					meta.D.Save()
+					meta.M.ActiveFid = fid
+					meta.M.OlderFids = append(meta.M.OlderFids, oaf.fid)
+					meta.M.Save()
 					if atomic.CompareAndSwapInt32(&fm.sistate, constant.Idle, constant.Running) {
 						go func() { fm.IndexSave() }()
 					}
 					return nil
 				}()
 				if err != nil {
-					logger.D.Errorf("文件回滚定时任务异常 %v\n", err)
+					logger.L.Errorf("文件回滚定时任务异常 %v\n", err)
 				}
 			}
 		}()
@@ -126,7 +127,7 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 					fm.loadtime = time.Now()
 					err = fm.loadAppendFile(fm.activeAF)
 					if err != nil {
-						logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
+						logger.L.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
 					}
 				}
 			}
@@ -140,7 +141,7 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 			err := func() error {
 				defer func() {
 					if err := recover(); err != nil {
-						logger.D.Errorf("文件merge定时任务异常 %v\n", err)
+						logger.L.Errorf("文件merge定时任务异常 %v\n", err)
 					}
 				}()
 				fm.counter.Range(func(fid, value interface{}) bool {
@@ -152,19 +153,22 @@ func NewAppendFileManager() (*AppendFileManager, error) {
 					if state == false {
 						return true
 					}
+					if af.(*appendFile).GetRole() == constant.Active {
+						return true
+					}
 					if err = fm.Merge(af.(*appendFile)); err != nil {
-						logger.D.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
+						logger.L.Errorf("fid = %d merge failure, err = %v\n", fid.(int64), err)
 					} else {
 						fm.Remove(af.(*appendFile))
 						fm.counter.Delete(fid)
-						logger.D.Infof("fid = %d merge success\n", fid.(int64))
+						logger.L.Infof("fid = %d merge success\n", fid.(int64))
 					}
 					return true
 				})
 				return nil
 			}()
 			if err != nil {
-				logger.D.Errorf("文件merge定时任务异常 %v\n", err)
+				logger.L.Errorf("文件merge定时任务异常 %v\n", err)
 			}
 		}
 	}()
@@ -232,13 +236,13 @@ func (fm *AppendFileManager) WriteRaw(d []byte) error {
 	fm.olderAF = append(fm.olderAF, oaf)
 	fm.activeAF = af
 	oaf.SetOlder()
-	meta.D.ActiveFid = fid
-	meta.D.OlderFids = append(meta.D.OlderFids, oaf.fid)
-	meta.D.Save()
+	meta.M.ActiveFid = fid
+	meta.M.OlderFids = append(meta.M.OlderFids, oaf.fid)
+	meta.M.Save()
 	fm.loadtime = time.Now()
 	err = fm.loadAppendFile(oaf)
 	if err != nil {
-		logger.D.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
+		logger.L.Errorf("loadAppendFile fid = %d %v\n", fm.activeAF.fid, err)
 	}
 	if atomic.CompareAndSwapInt32(&fm.sistate, constant.Idle, constant.Running) {
 		go func() { fm.IndexSave() }()
@@ -256,7 +260,7 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	fm.rot = time.Now().Unix()
 	v, state := fm.index.Load(string(k))
 	if state == false {
-		return nil, constant.KeyNotFound
+		return nil, constant.KeyNotFoundError
 	}
 	item := v.(*Item)
 	b := make([]byte, item.size)
@@ -277,18 +281,18 @@ func (fm *AppendFileManager) Read(k []byte) ([]byte, error) {
 	}
 	if string(kv.Value) == constant.DeleteFlag {
 		fm.index.Delete(string(kv.Value))
-		return nil, constant.KeyNotFound
+		return nil, constant.KeyNotFoundError
 	}
 	return kv.Value, nil
 }
 
 func (fm *AppendFileManager) Load() error {
 	startTime := time.Now()
-	logger.D.Infof("开始加载索引")
+	logger.L.Infof("开始加载索引")
 	if constant.InvalidIndex {
-		if meta.D.OlderFids != nil {
-			sort.Sort(i64(meta.D.OlderFids))
-			for _, fid := range meta.D.OlderFids {
+		if meta.M.OlderFids != nil {
+			sort.Sort(i64(meta.M.OlderFids))
+			for _, fid := range meta.M.OlderFids {
 				af, _ := fm.afmap.Load(fid)
 				err := fm.loadAppendFile(af.(*appendFile))
 				if err != nil {
@@ -299,14 +303,14 @@ func (fm *AppendFileManager) Load() error {
 	} else {
 		fm.IndexLoad()
 	}
-	if meta.D.ActiveFid != 0 {
-		af, _ := fm.afmap.Load(meta.D.ActiveFid)
+	if meta.M.ActiveFid != 0 {
+		af, _ := fm.afmap.Load(meta.M.ActiveFid)
 		err := fm.loadAppendFile(af.(*appendFile))
 		if err != nil {
 			return err
 		}
 	}
-	logger.D.Infof("加载索引完成，耗时 %.2f 秒\n", time.Since(startTime).Seconds())
+	logger.L.Infof("加载索引完成，耗时 %.2f 秒\n", time.Since(startTime).Seconds())
 	return nil
 }
 
@@ -358,7 +362,7 @@ func (fm *AppendFileManager) Close() {
 	for _, af := range fm.olderAF {
 		af.Close()
 	}
-	meta.D.Save()
+	meta.M.Save()
 }
 
 func (fm *AppendFileManager) IndexSave() {
@@ -367,7 +371,7 @@ func (fm *AppendFileManager) IndexSave() {
 	}()
 	startTime := time.Now()
 	defer func() {
-		logger.D.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
+		logger.L.Infof("index save 耗时: %.2f 秒\n", time.Since(startTime).Seconds())
 	}()
 	fn := filepath.Join(constant.Dir, "idx")
 	f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
@@ -389,7 +393,7 @@ func (fm *AppendFileManager) IndexSave() {
 		copy(b[22:kl+22], k)
 		_, err := f.Write(b)
 		if err != nil {
-			logger.D.Errorf("index save key = %s, item = %v, err = %v\n", k, i, err)
+			logger.L.Errorf("index save key = %s, item = %v, err = %v\n", k, i, err)
 		}
 		return true
 	})
@@ -477,6 +481,8 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 					if err != nil {
 						return err
 					}
+				} else {
+					fm.index.Delete(string(kv.Key))
 				}
 			}
 		}
@@ -486,18 +492,18 @@ func (fm *AppendFileManager) Merge(af *appendFile) error {
 }
 
 func (fm *AppendFileManager) Remove(af *appendFile) {
-	if af.role != constant.Older {
+	if af.GetRole() != constant.Older {
 		return
 	}
 	fm.afmap.Delete(af.fid)
 	af.Close()
 	os.Remove(af.fn)
 	ofids := make([]int64, 0)
-	for _, fid := range meta.D.OlderFids {
+	for _, fid := range meta.M.OlderFids {
 		if fid != af.fid {
 			ofids = append(ofids, fid)
 		}
 	}
-	meta.D.OlderFids = ofids
-	meta.D.Save()
+	meta.M.OlderFids = ofids
+	meta.M.Save()
 }

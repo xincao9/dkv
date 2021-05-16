@@ -27,3 +27,9 @@ echo "get 压力测试 round 2"
 echo ""
 
 wrk -t1 -c32 -d120s -s get.lua 'http://localhost:9090/kv'
+
+echo ""
+echo "delete 压力测试"
+echo ""
+
+wrk -t1 -c32 -d300s -s delete.lua 'http://localhost:9090/kv'

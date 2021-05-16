@@ -1,13 +1,14 @@
 package appendfile
 
 import (
-	"dkv/constant"
+	"dkv/component/constant"
 	"os"
 	"testing"
 )
 
 func TestNewAppendFile(t *testing.T) {
 	os.Remove("/tmp/0")
+	os.MkdirAll("/tmp/0", 0755)
 	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)
@@ -23,6 +24,7 @@ func TestNewAppendFile(t *testing.T) {
 
 func TestAppendFile_Write(t *testing.T) {
 	os.Remove("/tmp/0")
+	os.MkdirAll("/tmp/0", 0755)
 	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)
@@ -34,6 +36,7 @@ func TestAppendFile_Write(t *testing.T) {
 
 func TestAppendFile_Read(t *testing.T) {
 	os.Remove("/tmp/0")
+	os.MkdirAll("/tmp/0", 0755)
 	af, err := NewAppendFile("/tmp/0", constant.Active, 0)
 	if err != nil {
 		t.Error(err)

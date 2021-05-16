@@ -2,8 +2,8 @@ package store
 
 import (
 	"crypto/md5"
-	"dkv/constant"
-	"dkv/logger"
+	"dkv/component/constant"
+	"dkv/component/logger"
 	"dkv/store/appendfile"
 	"encoding/hex"
 	"math"
@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	D *Store
+	S *Store
 )
 
 // 启动存储引擎
 func init() {
 	var err error
-	D, err = NewStore()
+	S, err = NewStore()
 	if err != nil {
-		logger.D.Fatalf("Fatal error store: %v\n", err)
+		logger.L.Fatalf("Fatal error store: %v\n", err)
 	}
 }
 

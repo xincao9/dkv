@@ -1,7 +1,12 @@
-FROM debian:jessie
+FROM golang:1.12
 
 LABEL maintainer="xincao9@gmail.com"
 
-ADD dkv /dkv
+WORKDIR /go/src/dkv
+COPY . .
+RUN make install
 
-ENTRYPOINT [ "/dkv" ]
+EXPOSE 9090
+EXPOSE 6380
+
+CMD ["/usr/local/dkv/bin/dkv", "-conf=config-prod.yaml"]
