@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.5.1
-	github.com/gin-gonic/gin v1.4.0
+	github.com/gin-gonic/gin v1.7.0
 	github.com/golang/snappy v0.0.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/prometheus/client_golang v1.1.0
