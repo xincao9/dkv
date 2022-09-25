@@ -13,11 +13,13 @@ import (
 	"dkv/store"
 	_ "dkv/store/synchronous"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	// 启动
 	// 启动存储引擎
 	defer store.S.Close()
 	defer cache.C.Close()
