@@ -1,8 +1,8 @@
 package meta
 
 import (
-	"dkv/constant"
-	"dkv/logger"
+	"dkv/component/constant"
+	"dkv/component/logger"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -10,13 +10,13 @@ import (
 	"sort"
 )
 
-var D *meta
+var M *meta
 
 func init() {
 	var err error
-	D, err = New()
+	M, err = New()
 	if err != nil {
-		logger.D.Fatalf("Fatal error meta: %v\n", err)
+		logger.L.Fatalf("Fatal error meta: %v\n", err)
 	}
 }
 
@@ -67,7 +67,10 @@ func (m *meta) Save() error {
 		return err
 	}
 	if ok == false {
-		os.Mkdir(constant.Dir, 0755)
+		err = os.MkdirAll(constant.Dir, 0755)
+		if err != nil {
+			return err
+		}
 	}
 	return ioutil.WriteFile(fn, b, 0644)
 }

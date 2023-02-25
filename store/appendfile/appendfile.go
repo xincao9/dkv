@@ -1,8 +1,8 @@
 package appendfile
 
 import (
-	"dkv/constant"
-	"dkv/logger"
+	"dkv/component/constant"
+	"dkv/component/logger"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -95,7 +95,11 @@ func (af *appendFile) Sync() {
 	if af.fo != nil {
 		err := af.fo.Sync()
 		if err != nil {
-			logger.D.Errorf("sync: %v\n", err)
+			logger.L.Errorf("sync: %v\n", err)
 		}
 	}
+}
+
+func (af *appendFile) GetRole() int {
+	return af.role
 }

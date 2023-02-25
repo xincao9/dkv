@@ -1,0 +1,21 @@
+data:
+  dir: /usr/local/dkv/data/m
+  invalidIndex: false
+  cache:
+    open: true
+    size: 1073741824
+  compress:
+    open: false
+server:
+  mode: release
+  port: 8090
+  sequence: true
+  redis:
+    port: 5380
+logger:
+  level: info
+  dir: /usr/local/dkv/log/m
+ms:
+  role: 1
+  m:
+    port: 7380

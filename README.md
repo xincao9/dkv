@@ -1,75 +1,110 @@
 # dkv
 
-**A Log-Structured Hash Table for Fast Key/Value Data** 
+**对象存储 - 日志结构哈希表**
 
 [![CodeFactor](https://www.codefactor.io/repository/github/xincao9/dkv/badge)](https://www.codefactor.io/repository/github/xincao9/dkv)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e062787e83ab41c387e567f5210d4cc4)](https://www.codacy.com/manual/xincao9/dkv?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xincao9/dkv&amp;utm_campaign=Badge_Grade)
 
 ![logo](https://github.com/xincao9/dkv/blob/master/logo.png)
 
-* low latency per item read or written
-* high throughput, especially when writing an incoming stream of random items
-* ability to handle datasets much larger than RAM w/o degradation
-* crash friendliness, both in terms of fast recovery and not losing data
-* ease of backup and restore
-* a relatively simple, understandable (and thus supportable) code structure and data format • predictable behavior under heavy access load or large volume
+* 读取和写入较低的延迟
+* 高吞吐量
+* 支持存储海量数据
+* 崩溃后数据修复友好
+* 支持数据的备份和还原
 
-**Install**
+## 安装指导
 
-> By default, the golang environment has been installed.
+### 本地编译
 
 ```
 git clone https://github.com/xincao9/dkv.git
 cd ./dkv
 sudo make install
-Execute: dkv -d=true
-Configuration file: vim /usr/local/dkv/config.yaml
-Data directory: cd /usr/local/dkv/data
 ```
 
-**Configuration file**
-
-> config.yaml Placed in the current working directory or /etc/dkv/ or $HOME/.dkv or /usr/local/dkv
+**/usr/local/dkv/conf/config-prod.yaml 配置文件**
 
 ```
 data:
-  dir: /usr/local/dkv/data #data directory
-  invalidIndex: false #Whether to rebuild the index when starting
-  cache: true #Whether to enable caching
-  compress: false #Whether to enable compression
+    dir: /usr/local/dkv/data
+    invalidIndex: false
+    cache:
+        open: true
+        size: 1073741824
+    compress:
+        open: false
 server:
-  mode: release
-  port: :9090 #port
-  sequence: true
-  redcon:
-    port: 6380 #redis port
+    mode: release
+    port: 9090
+    sequence: true
+    redis:
+        port: 6380
 logger:
-  level: info #log level
+    level: info
+    dir: /usr/local/dkv/log
+ms:
+    role: 0
 ```
 
-**HTTP interface**
-
-> KV store
+**目录说明**
 
 ```
-Add or modify
-curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
-Search
-curl -X GET 'http://localhost:9090/kv/name'
-delete
-curl -X DELETE 'http://localhost:9090/kv/name'
+执行文件: /usr/local/dkv/bin/dkv
+配置文件目录: /usr/local/dkv/conf/
+数据目录: /usr/local/dkv/data/
+日志目录: /usr/local/dkv/log/
 ```
 
-> OSS (Object Storage Service)
+**执行命令**
 
 ```
-Upload file, file max size 64M
-curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data'
-Fetch file
-curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
+dkv -d=true -conf=config-prod.yaml
 ```
 
-**Redis command**
+### 容器化部署
+
+```
+docker pull xincao9/dkv
+docker run -d -p 9090:9090 -p 6380:6380 dkv:latest
+```
+
+## 接口说明
+
+### HTTP接口
+
+**键值存储**
+
+1. 增加或修改
+
+    ```
+    curl -X PUT -H 'content-type:application/json' 'http://localhost:9090/kv' -d '{"k":"name", "v":"xincao9"}'
+    ```
+2. 查询
+
+    ```
+    curl -X GET 'http://localhost:9090/kv/name'
+    ```
+3. 删除
+
+    ```
+    curl -X DELETE 'http://localhost:9090/kv/name'
+    ```
+
+**对象存储**
+
+1. 上传对象，最大64M
+
+    ```
+    curl -X POST 'http://localhost:9090/oss' -F "file[]=@config.yaml" -H 'content-type:multipart/form-data'
+    ```
+2. 读取文件
+
+    ```
+    curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
+    ```
+
+### REDIS 支持命令
 
 
 * SET key value
@@ -77,7 +112,9 @@ curl -X GET 'http://localhost:9090/oss/116a71ebd837470652f063028127c5cd'
 * DEL key
 * PING
 
-> go get github.com/go-redis/redis
+```
+go get github.com/go-redis/redis
+```
 
 ```
 client := redis.NewClient(&redis.Options{
@@ -96,9 +133,11 @@ if err != nil {
 log.Println(val)
 ```
 
-**GO SDK**
+### GO SDK接入
 
-> go get github.com/xincao9/dkv/client
+```
+go get github.com/xincao9/dkv/client
+```
 
 ```
 c, err := client.New("localhost:9090", time.Second)
@@ -115,27 +154,34 @@ if err == nil {
 }
 ```
 
-**Management interface**
+### 管理接口
+
+1. 运行时配置
+
+    ```
+    curl -X GET 'http://localhost:9090/config'
+    ```
+2. 普罗米修斯指示器
+
+    ```
+    curl -X GET 'http://localhost:9090/metrics'
+    ```
+3. pprof 接口
+
+    ```
+    curl -X GET 'http://localhost:9090/debug/pprof'
+    ```
+
+**Grafana dashboard 资源**
+
+> [prometheus.json](https://github.com/xincao9/dkv/blob/master/resource/prometheus.json)
+
+## 压力测试
 
 ```
-View runtime configuration
-curl -X GET 'http://localhost:9090/config'
-Prometheus indicator
-curl -X GET 'http://localhost:9090/metrics'
-Pprof interface
-curl -X GET 'http://localhost:9090/debug/pprof'
+执行: benchmark/start.sh
 ```
 
-**Grafana dashboard resources**
+## 参考
 
-> [prometheus.json](https://raw.githubusercontent.com/xincao9/dkv/master/prometheus.json)
-
-**Pressure test**
-
-```
-Execute benchmark/start.sh
-```
-
-**Reference**
-
-* [bitcask-intro](https://github.com/xincao9/dkv/blob/master/bitcask-intro.pdf)
+* [bitcask-intro](https://github.com/xincao9/dkv/blob/master/resource/bitcask-intro.pdf)

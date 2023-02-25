@@ -1,3 +1,3 @@
-module dkv/client
+module github.com/xincao9/dkv/client
 
-go 1.12
+go 1.14
